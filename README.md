@@ -1,7 +1,7 @@
 # ITIL - Helpdesk:
  IT SAM - IT Asset - ITIL - Helpdesk - Ticket - KB - Troubleshoot - Proposale Internal IT Lead ISO vs Audit
 
-**Introduction ITL -Helpdesk:**
+**Chapter 1. Introduction ITL -Helpdesk:**
 ![image](https://user-images.githubusercontent.com/106635733/200482934-b52a3b25-85cb-4b18-8db8-ea6e4d01b28a.png)
 
 **I. IT Asset Management:**
@@ -127,6 +127,70 @@ _**Knowledge Manager:**_
     Knowledge Manager ensures that the IT organization is able to collect, analyze, store and share knowledge and information as and when required.
     The primary goal of Knowledge Manager is to improve efficiency by reducing the need to rediscover knowledge.
 
+**II. Problem Management in ITIL 4:**
+_**What is problem management?**_
+The purpose of problem management is to reduce the likelihood and impact of incidents by identifying actual and potential causes of incidents, and managing workarounds and known errors.
+Problems are related to incidents, but it is important to differentiate them in the way they are managed:
+  1. Incidents have an impact on users or business processes, and must be resolved so that normal business activity can take place.
+  2. Problems are the causes of incidents therefore they require investigation and analysis to identify the causes, develop workarounds, and recommend longer-term resolution. This reduces the number and impact of future incidents.
+
+_**3 phases of problem management**_
+Problem management involves three distinct phases:
+![image](https://user-images.githubusercontent.com/106635733/200578782-c2604f42-6e1e-4df8-9ce7-b3a419cba475.png)
+
+_**1. Problem Identification**_
+Problem identification activities identify and log problems by:
+  1. Performing trend analysis of incident records.
+  2. Detecting duplicate and recurring issues.
+  3. During major incident management, identifying a risk that an incident could recur.
+  4. Analyzing information received from suppliers and partners.
+  5. Analyzing information received from internal software developers, test teams, and project teams.
+
+_**2. Problem Control**_
+Problem control activities include problem analysis and documenting workarounds and known errors. Just like incidents, problems will be prioritized based on the risk they pose in terms of probability and impact to services. Focus should be given to problems that have highest risk to services and service management.
+When analysing incidents, it is important to remember that they may have interrelated causes, which may have complex relationships. Therefore problem analysis should have a holistic approach considering all contributory causes such as those that caused the incident to happen, made the incident worse, or even prolonged the incident.
+When a problem cannot be resolved quickly, it is often useful to find and document a workaround for future incidents, based on an understanding of the problem. A workaround is defined as a solution that reduces or eliminates the impact or probability of an incident or problem for which a full resolution is not yet available. An example of a workaround could be restarting services in an application, or failover to secondary equipment. Workarounds are documented in problem records, and this can be done at any stage without necessarily having to wait for analysis to be complete. However, if a workaround has been documented early in problem control, then this should be reviewed and improved after problem analysis has been completed.
+An effective incident workaround can become a permanent way of dealing with some problems, where resolution of the problem is not viable or cost-effective. If this is the case, then the problem remains in the known error status, and the documented workaround is applied when related incidents occur. Every documented workaround should include a clear definition of the symptoms and context to which it applies. Workarounds may be automated for greater efficiency and faster application.
+
+_**3. Error Control:**_
+Error control activities manage known errors, and may enable the identification of potential permanent solutions. Where a permanent solution requires change control, this has to be analysed from the perspective of cost, risk and benefits.
+Error control also regularly re-assesses the status of known errors that have not been resolved, taking account of the overall impact on customers and/or service availability, and the cost of permanent resolutions, and effectiveness of workarounds. The effectiveness of workarounds should be evaluated each time a workaround is used, as the workaround may be improved based on the assessment.
+
+_**Problem management and other practices:**_
+_**Incident Management:**_
+_Activities from these two practices are closely related and may complement each other (e.g. identifying the causes of an incident is a problem management activity that may lead to incident resolution), but they may also conflict (e.g. investigating the cause of an incident may delay actions needed to restore service)._
+_**Risk Management:**_
+_Problem management activities aim to identify, assess, and control risks in any of the four dimensions of service management. Therefore, it may be useful to adopt risk management tools and techniques._
+_**Change Enablement:**_
+_Problem management typically initiates resolution via change control and participates in the post-implementation review. However, approval and implementation is outside the scope of problem management._
+_**Knowledge Management:**_
+_Output from the problem management includes information and documentation concerning workarounds and known errors. Also, problem management may utilize information in a knowledge management system to investigate, diagnose, and resolve problems._
+_**Continual Improvement:**_
+_Problem management activities can identify improvement opportunities in all four dimensions of service management. Solutions to problems may be documented in a continual improvement register or added to a product backlog._
+
+
+**People aspects of problem management:**
+Many problem management activities rely on the knowledge and experience of staff, rather than on detailed, documented procedures. Skills and capabilities in problem management include the ability to understand complex systems, and to think about how different failures might have occurred. Developing this combination of analytical and creative ability requires mentoring and time, as well as suitable training of techniques such as Cynefin, Kepner and Tregoe, 5-Whys, Ishikawa diagrams and Pareto analysis among others.
+
+**III. Ticket:**
+The service assistance module of GLPI meet the specified standards of ITIL v4, the most widely accepted best practice framework for service management software.
+![image](https://user-images.githubusercontent.com/106635733/200584347-cbddf14d-115e-48e0-9bc6-49beb15d608e.png)
+
+![image](https://user-images.githubusercontent.com/106635733/200585796-076e044b-1b9f-47d7-9f1b-19bfdc40417a.png)
+
+**ITIL solution historical:**
+On the main ITIL objects (Tickets, Problems and Changes), the solutions can now be multiple and so historized
+![image](https://user-images.githubusercontent.com/106635733/200586882-05ebaae4-7ba2-4bd2-92d1-9183f2a6706d.png)
+A color code is now available to indicate the approval status of the solution:
+  - orange: Waiting for approval ;
+  - red: Refused solution ;
+  - gree: Accepted Solution.
+
+**Helpdesk**
+![image](https://user-images.githubusercontent.com/106635733/200589269-7c2dbce4-eb82-46f7-8010-3f5d591cb384.png)
+
+**ITIL Roadmap:**
+![image](https://user-images.githubusercontent.com/106635733/200590643-2fd13f6a-38a2-4dd0-a050-da0cf80ac5a5.png)
 
 
 **IV. ITIL Incident Management:**
@@ -235,3 +299,38 @@ The incident manager has to track the effectiveness of the incident management o
  6. Incidents that triggered problem tickets
  7. Incidents that began change tickets
 
+**Chapter 2. Selected functions of ITIL Helpdesk system:**
+![image](https://user-images.githubusercontent.com/106635733/200591405-f7e12942-f079-47d7-b5ad-c478d4729977.png)
+![image](https://user-images.githubusercontent.com/106635733/200591542-90fd9100-6739-4029-b2af-b6f49ae86050.png)
+![image](https://user-images.githubusercontent.com/106635733/200591654-9df13ff9-3621-4f5f-85ae-5c7be8b0d686.png)
+
+_**Control Panel:**_
+The system includes the basic modules: Resources,Support, Management, Tools and Administration.
+![image](https://user-images.githubusercontent.com/106635733/200593344-7b7614fe-6dd9-4efa-aae8-a82ff7063755.png)
+
+_**Ticket queue:**_
+![image](https://user-images.githubusercontent.com/106635733/200593446-a260c6d7-cf3f-46b3-948d-bee5ad32d6e7.png)
+In the Support module, we gain access to the entire queue of requests. They can be freely filtered with the help of selected rules. You can also create your own "Dashboards" for the convenience of use and the individual needs of the administrator or user.
+
+_**Centralization:**_
+![image](https://user-images.githubusercontent.com/106635733/200593554-725c33b2-b303-4d30-b094-33b018cd3584.png)
+ITIL Helpdesk is a one system for hardware and ticket management. It provides efficiency and ease of use for managers, administrators, consultants and employees in the company, minimizing the necesity to log into multiple systems.
+
+_**Organizing assets:**_
+![image](https://user-images.githubusercontent.com/106635733/200593737-575924b0-777c-4d2c-a028-94a5ad91b143.png)
+
+_**Assets relations:**_
+![image](https://user-images.githubusercontent.com/106635733/200593885-21f160b8-bb18-4b0d-8cf7-494eb315238e.png)
+Establishing the relationship between requests, equipment and users allows you to determine where, what devices are located, what is connected to it, what programs and licenses are used, who is responsible for them, and provides an insight into the history of requests and issues related to with the device.
+
+_**Transparency:**_
+![image](https://user-images.githubusercontent.com/106635733/200594133-0bd5a736-6f20-4783-8149-26b9dcba8f96.png)
+For each resource, we can define the name, location, assign a person or group responsible for the device, source, status, type, manufacturer, model, serial number and inventory. We can also identify individual device components such as: operating systems, software installed on the device, network connections, hardware reservations, certificates, history and associated budgets, contracts, invoices, warranties and notifications.
+
+_**Coordination:**_
+![image](https://user-images.githubusercontent.com/106635733/200595123-bcbd8dca-d5e1-459a-87f9-937a44742d40.png)
+The insight into the queue of applications provides full knowledge of all matters in the company and allows you to prioritize them. Thanks to the record of internal and external notifications, the system works well not only in IT departments, but also in other areas of activity, such as sales, customer service or marketing.
+
+_**Server configuration view:**_
+![image](https://user-images.githubusercontent.com/106635733/200595258-18cd80f7-36f8-4417-867c-b2bdf4bf161f.png)
+The Resources module allows, among other things, to add devices installed in RACK cabinets,it provides full knowledge about the hardware located in the cabinets and its configuration without the need to visit the server room.
