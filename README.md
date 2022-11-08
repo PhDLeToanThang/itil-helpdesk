@@ -45,6 +45,7 @@ IT asset management (ITAM) software allows businesses to:
 The IT asset management software benefits greatly from being as automated as possible. Track and tag hundreds of different hardware properties, software titles, and user and location history from your Windows, iOS, and Chrome OS devices. Save time and keep records up to date in a single location by compiling vendor data, warranties, lease terms, and agreements. Expedite break-fixes and changes within service desk tickets by automatically capturing and gathering each asset’s incident history.
 
 
+
 **IV. ITIL Incident Management:**
 
 **- What is Incident Management:**
