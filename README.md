@@ -184,7 +184,7 @@ On the main ITIL objects (Tickets, Problems and Changes), the solutions can now 
 A color code is now available to indicate the approval status of the solution:
   - orange: Waiting for approval ;
   - red: Refused solution ;
-  - gree: Accepted Solution.
+  - green: Accepted Solution.
 
 **Helpdesk**
 ![image](https://user-images.githubusercontent.com/106635733/200589269-7c2dbce4-eb82-46f7-8010-3f5d591cb384.png)
