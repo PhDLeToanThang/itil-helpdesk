@@ -7,7 +7,9 @@
 
 
 **IV. ITIL Incident Management:**
+
 **- What is Incident Management:**
+
 An incident is an event that may result in the loss or disruption of an organization’s operations, services or functions. Incident management (ICM) is a term that describes an organization’s activities to identify, analyze, and remediate hazards to prevent them from occurring again in the future.
 
 These events within a structured organization are normally handled by an incident response team (IRT), an incident management team (IMT), or the Incident Command System (ICS). Without effective incident management, an incident can disrupt business operations, information security, IT systems, employees, customers, or other vital business functions.
@@ -16,11 +18,11 @@ Without incident management, you could lose valuable data, gain low productivity
 ![image](https://user-images.githubusercontent.com/106635733/200489222-2d76ab55-a91a-490e-aa34-0b72cee77830.png)
 
 Some of the most important benefits of implementing an incident management strategy include:
-1. Prevention of incidents
-2. Improved mean time to resolution (MTTR)
-3. Reducing or eliminating downtime
-4. Higher data accuracy
-5.Improved customer experience
+ 1. Prevention of incidents
+ 2. Improved mean time to resolution (MTTR)
+ 3. Reducing or eliminating downtime
+ 4. Higher data accuracy
+ 5.Improved customer experience
 
 Another benefit of incident management applications is an overall reduction in costs. According to a study by Gartner, system or service downtime can cost organizations up to $ 300,000 per hour. Additionally, legal fines and loss of customer trust can have significant financial implications. With incident management, organizations may have to invest upfront, but avoid significant costs later on.
 
@@ -69,3 +71,44 @@ Major incidents are defined by ITIL as incidents that represent significant disr
 **-Incident response:**
 
 ![image](https://user-images.githubusercontent.com/106635733/200485335-10e8f5c4-b809-4107-8dc8-0ebc179ff3af.png)
+
+**6 Goals of Incident Management:**
+The prime goal of incident management is to resolve incidents either with temp fix or perm fix and bring back the IT service. We list here a few steps involved during the incident process.
+
+![image](https://user-images.githubusercontent.com/106635733/200489784-54141cb9-0700-47d5-b530-459e91d2cfb5.png)
+
+1.Resolve incidents to reduce downtime to the business
+The prime goal of incident management is to resolve incidents either with temp fix or perm fix and bring back the IT service. Resolving the incidents firstly requires registering the incident in the ITSM tool with a unique reference number. Categorization of the incident is done based on hardware, software, etc., and then the incident is assigned to the appropriate team or a person to take quick action. The investigation and diagnosis are made. The resolution is implemented by searching knowledge articles or reference materials or KEDB, and once the issue is resolved, the incident is closed.
+
+2.Improve the quality of IT service and increase the availability of the operation of the service:
+Incident management can improve the quality of IT services by identifying the recurring incidents and logging problem tickets to identify the root cause of the incident/ incidents. If there is any recent incident with no resolution, then a problem ticket is created to identify the root cause and fix it.
+By identifying the recurring incidents and their associated CI’s, availability management or capacity management or information security management, or continuity management can redefine or revise the respective plans and procedures to improve the delivery of services.
+
+3.Monitoring of services, detecting and mitigating incidents:
+As the incident management team in many organizations is also involved in monitoring, they will get a complete picture of why the incident occurred, what errors or warnings, or exceptions have occurred. Accordingly, the monitoring team can consolidate the complete information from monitoring and event management tools and inform the problem management team for quicker resolution of unknown incidents. 
+
+4.Communicate regarding the progress of the major incidents to all stakeholders
+The incident management team will communicate the major incidents' progress to the necessary stakeholders from the moment it has been registered to the closure.
+The incident management team keeps sending notifications regularly after every half an hour or the defined timelines to all the relevant stakeholder giving information on the incident like:
+ 1. What is the incident?
+ 2. What is the priority?
+ 3. When the incident occurred?
+ 4. Where is the incident happening or happened?
+ 5. What is the associated CI?
+ 6. How many people are impacted?
+ 7. Who is working on the issue?
+ 8. Estimated time to resolve the incident
+
+5.Ensure SLA’s don’t breach for any reason:
+The incident manager and management team will have to ensure the SLA doesn’t breach any of the incident tickets for any reason like 3rd party involvement, negligence of the incident management team, dependency on any other problem, or change ticket.
+
+6.Measure the effectiveness of incident management operations:
+The incident manager has to track the effectiveness of the incident management operations by defining the metrics and KPI’s (Key Performance Indicators) like:
+ 1. Number of incidents
+ 2. Number of major incidents
+ 3. Number of recurring incidents
+ 4. The average time is taken to resolve the incident
+ 5. The average time is taken to resolve the major incident
+ 6. Incidents that triggered problem tickets
+ 7. Incidents that began change tickets
+
