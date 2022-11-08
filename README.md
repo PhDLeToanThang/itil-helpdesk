@@ -44,6 +44,88 @@ IT asset management (ITAM) software allows businesses to:
 
 The IT asset management software benefits greatly from being as automated as possible. Track and tag hundreds of different hardware properties, software titles, and user and location history from your Windows, iOS, and Chrome OS devices. Save time and keep records up to date in a single location by compiling vendor data, warranties, lease terms, and agreements. Expedite break-fixes and changes within service desk tickets by automatically capturing and gathering each asset’s incident history.
 
+**II. ITIL Knowledge Management | ITIL Foundation | ITSM:**
+
+**What is ITIL Knowledge Management Process?**
+The Knowledge Management **(KM)** or Knowledge Base **(KB)** Process is one of the main processes under Service Transition module of the ITIL Framework.
+As described in ITIL v4 documentation, it is the process of creating, sharing, using and managing the knowledge and information of an organization.
+The ITIL Knowledge Management Process helps the organizations to achieve their goals by making the best use of knowledge. Many large companies already have dedicated teams for managing organizational knowledge.
+
+**ITIL Knowledge Management Scope:**
+ITIL Knowledge Management (**ITIL KM** or **ITIL KB**) is the central process that receives input from all other ITSM processes and responsible for providing supporting knowledge to all of the ITSM processes when required. Hence, it is defined that this process interacts with every other process of the IT Service Management (ITSM) Framework.
+
+**ITIL Knowledge Management Objective:**
+The primary objective of ITIL Knowledge Management Process is to collect, analyze, store and share knowledge and information within an organization. It also reduces the need for rediscovering knowledge, hence improves the service efficiency.
+This process is also responsible for maintaining the service knowledge management system (ITIL SKMS or ITIL KBs), which symbolizes the total body of knowledge within the organization. Here the objective is to capture, arrange, classify, and store every bit of organizational knowledge and made them available where needed.
+
+**Benefits of Using ITIL Knowledge Management:**
+  By implementing knowledge management (ITIL V4) practices in your organization, you can improve the IT team's overall capability and provide better service to users. Some of the benefits of this process are:
+
+  Reductions the amount of time that must be spent on training employees. Since your team will consistently receive precise and up-to-date information, they will require fewer formal training to meet the performance expectations.
+
+  Decreases the number of errors that are made by team members. If your team has the adequate source of knowledge that is needed to take formal decisions, then they are far less likely to go outside the track.
+
+  Implementation of the ITIL Knowledge Management process cuts down the effort to complete any steps of the service process more than once. When everyone would have process awareness, it is less likely that a known step will be performed incorrectly.
+
+  Availability of instant knowledge allows the IT professionals to respond to customer demands faster and more effectively. Your employees will know the way to answer customer questions more efficiently, thus reducing the number of times you have to intervene or respond to a negative feedback about the lack of knowledge of your team members.
+
+  The relevant part of knowledge stored in the SKMS can be made available to the end user by creating a user portal. Thus creating a self-help service desk portal for common users. This can significantly decrease the pressure on the service desk associates, which will eventually increase the quality of service.
+
+**The DIKW Model of ITIL Knowledge Management:**
+The DIKW Model (also known as DIKW Pyramid, DIKW Hierarchy, Data pyramid, Knowledge Hierarchy) is a hierarchical model for representing the flow of data through information, knowledge, and wisdom.
+
+In this model, the “D” stands for Data, “I” stands for Information, “K” stands for Knowledge, and “W” stands for Wisdom. The reference model has been shown below:
+![image](https://user-images.githubusercontent.com/106635733/200509174-eaad21bb-23b9-4dab-bacd-7b7f24a8d676.png)
+
+**Data:** Data is the collection of discrete facts about events, received as inputs from the processes. Data basically consists of symbols or signs, representing stimuli or signals that are of no use until processed.
+
+**Information:** Information is processed data. It comes from providing context to data or by asking questions on the data. This typically requires capturing of various sources of data and applying some meaning or relevance to the set of facts. Information tries to answer the question “Who? What? When? Where?”.
+
+**Knowledge:** Knowledge is a more derived form of data. It is composed of the concepts, experiences, ideas, insights values and judgments of individuals with a clear reference to the information. This usually requires the analysis of information and helps in decision making. Knowledge tries to answer the question “How?”.
+
+**Wisdom:** Wisdom gives the ultimate insight of the data. It describes the application of knowledge and provides contextual awareness to generate a strong common sense judgment. The use of wisdom enables an organization to manage its strategy and growth in competitive market spaces. Wisdom tries to answer the question “Why?”.
+
+**What is Service Knowledge Management System (SKMS) or SKBs in ITIL?**
+As defined in ITIL v4, the Service Knowledge Management System (SKMS) or SKBs is the central repository of the data, information, and knowledge that the IT organization needs to manage the lifecycle of its services.
+
+The SKMS/SKBs is not necessarily to be a single system and usually formed by merging multiple discrete systems & data sources.
+The main purpose of SKMS (ITIL V4) is to store, analyze and present the service provider's data, information and knowledge in a structured manner.
+
+**The Relationship between CMDB, KEDB, CMS, and SKMS:**
+The SKMS/ SKBs is closely related to CMDB, KEDB, and CMS. These act as three levels of data processing.
+The CMDB captures & record the configuration data and KEDB Records Known errors, the CMS arranges these records in a manageable structure and then that processed information feeds into the SKMS/SKBs.
+Using these stored information SKMS/SKBs supports delivery of the services and helps to provide relevant information for decision-making. Below Image describes the relationship among them:
+![image](https://user-images.githubusercontent.com/106635733/200510463-c984c945-7e03-45e4-854f-c95a836b7705.png)
+
+**ITIL Knowledge Management Activities:**
+The knowledge management (ITIL V4) process has some defined activities that needs to be performed for its successful implementation, those are:
+
+_**1) Knowledge Management Strategy:**_
+Your organization must have defined strategy for identifying the information that needs to be processed by ITIL Knowledge Management process. Your strategy should clearly identify the types of information that need to be passed to the knowledge management.
+You may choose any parameter as per your business requirement, but all of these strategic identifiers should have been documented to ensure that every team member understands what is expected.
+For example, A lot of organization describes the feedback from customers, repeated incident reports, and the support costs as key data that needs to be analyzed by this process.
+
+_**2) Knowledge Transfer:**_
+Once you have decided your strategy, you will have to determine the process on how the knowledge will be transferred to other team members or departments.
+The initial step in knowledge transfer activity is identifying the communication gaps so that you can eliminate them before transferring the knowledge to all the concerned stakeholders.
+It is absolutely necessary to create a well-defined communication plan for circulating information across all channels during this activity.
+
+_**3) Information Management:**_
+Information can only become knowledge if it is properly processed, managed, and distributed across your team. Instant access to the specific and relevant information is also essential for the success of the ITIL Knowledge Management process.
+Information management activity is a critical part of the whole process that involves data collection, information management, and determining how this information will be translated to become the knowledge. You should first define a process to organize this information and then record it in a manual as a policy or procedure, so that your team members can access it as and when needed.
+
+_**4) Management of SKMS:**_
+We already know that the ITIL SKMS / ITIL SKBs is a group of systems, tools, and databases needed for successful implementation of knowledge management. This is the system you should use to store, update, and manage data on a regular basis.
+Your team members should have the appropriate right to access information through the SKMS/ SKBs system at any point in time. So, the management of SKMS/SKBs  should have the maximum importance for an organization.
+ITIL Knowledge Management Sub-Process: 
+There is no defined sub-process of this process. Refer to the below diagram describing the ITIL Knowledge Management Process Flow:
+![image](https://user-images.githubusercontent.com/106635733/200513424-e02b69c3-606b-4ae7-934f-11171540ccf5.png)
+
+**ITIL Knowledge Management Roles and Responsibilities:**
+_**Knowledge Manager:**_
+    This Knowledge Manager role is the Process Owner of this ITIL Knowledge Management Process.
+    Knowledge Manager ensures that the IT organization is able to collect, analyze, store and share knowledge and information as and when required.
+    The primary goal of Knowledge Manager is to improve efficiency by reducing the need to rediscover knowledge.
 
 
 **IV. ITIL Incident Management:**
