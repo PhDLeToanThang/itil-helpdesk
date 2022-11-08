@@ -4,6 +4,45 @@
 **Introduction ITL -Helpdesk:**
 ![image](https://user-images.githubusercontent.com/106635733/200482934-b52a3b25-85cb-4b18-8db8-ea6e4d01b28a.png)
 
+**I. IT Asset Management:**
+
+![image](https://user-images.githubusercontent.com/106635733/200490739-c669d256-87fc-4e20-a51c-97d70ad2d48f.png)
+IT organizations manage a large amount of the company’s total assets. IT assets are extremely costly to manage and maintain. As a result, asset management plays a major role in helping organizations in fulfilling the requirements of users and business functions.
+
+IT asset management (ITAM) provides an accurate account of technology asset lifecycle costs and risks to maximize the business value of technology strategy, architecture, funding, contractual and sourcing decisions.”
+
+This definition points out that ITAM is not just about collecting the assets, it is not just about carrying assets, it is about using the right information at the right time that is obtained to drive better decision making. This ITAM software will be the best solution that helps businesses in focusing on the informational value of IT asset data to get the best business value.
+
+Asset tracking system is an important part of an IT organization, as it ensures that companies have control over their applications and hardware, have a complete overview of the assets, where they are being used, and how often they are being used.
+
+**- IT Asset Management and ITIL:**
+ITIL and asset management is a partnership ensuring you’re planning and managing the relationships between your IT assets and service tickets or requests. The ITIL framework is a set of best practices providing the foundation for better IT service management (ITSM). Incorporating the best practices of ITIL gives you the ability to manage your IT assets in real time with a full understanding of how incidents, problems, changes, and releases impact your assets through an integrated service desk. IT asset management solutions coupled with ITIL best practices reduce business risk by alerting IT of potential software security problems and threats.
+The goals of ITIL and asset management software include:
+  1. Acquiring appropriate IT assets while keeping costs low and benefits high
+  2. Optimizing the use of each IT asset
+  3. Disposing of IT assets when cost of maintaining them exceeds their benefits
+  4. Providing information necessary for regulatory compliance, license renewal, and contract renewal
+
+ITIL asset management allows for more effective incident and problem management, which can improve resolution rates and reduce resolution times. It also makes it easier to move, add, or change configurations by connecting service information to specific assets. A good asset management strategy makes it easier to track software licenses and warranties so that your business can avoid unnecessary repair charges or fines for breaching service level agreements (SLAs). This helps keep ITSM costs down. 
+
+![image](https://user-images.githubusercontent.com/106635733/200491971-5671b7c1-c13a-4eba-9f67-e8be3c966c04.png)
+
+**- Benefits of Asset Management Solutions:**
+IT asset management (ITAM) software allows businesses to:
+  1. Manage asset compliance
+  2. Have greater asset visibility
+  3. Increase accountability
+  4. Reduce unnecessary purchases
+  5. Redeploy IT assets quicker
+  6. Manage contract service levels
+  7. Automate contract renewal
+  8. Improve budgeting
+  9. Improve management of depreciable assets
+  10. Reduce payments made due to ignorance of warranty status
+  11. Better measure and control IT costs
+  12. Manage every asset from requisition through retirement
+
+The IT asset management software benefits greatly from being as automated as possible. Track and tag hundreds of different hardware properties, software titles, and user and location history from your Windows, iOS, and Chrome OS devices. Save time and keep records up to date in a single location by compiling vendor data, warranties, lease terms, and agreements. Expedite break-fixes and changes within service desk tickets by automatically capturing and gathering each asset’s incident history.
 
 
 **IV. ITIL Incident Management:**
