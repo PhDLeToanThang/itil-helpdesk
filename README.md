@@ -416,6 +416,17 @@ _COBIT > ITIL > ISO 27002_
 
 _**2. COBIT - ITIL - ISO 27001/27002:2022 as Consolidator:**_
 
+**Interactions:**
+1. **ITIL** was designed as a service management framework to help you understand how you support processes, how you deliver services
+2. **COBIT** was designed as an IT governance model, particularly and initially with audit in mind to give you control objectives and control practices on how that process should behave
+ - The difference between the two is, COBIT tells you what you should be doing, while ITIL tells you how you should be doing it
+ - Put COBIT and ITIL together, and you have a very powerful model of what you need to be doing and how you need to be doing it, when it comes to your process management
+- **Basically ISO** gives security, but does not provide to acknowledge of how to integrate them into business process
+- **ITIL** focus IT processes
+- **COBIT** focuses on control and metrics
+
+  So, a combination of all three is usually the best approach. **COBIT** can be used to determine if the company’s needs are being properly supported by IT.**ISO** can be used to determine and improve upon company’s security posture. And ITIL can be used to improve IT processes to meet the company’s goals (including security).
+
 ![image](https://user-images.githubusercontent.com/106635733/201003738-d376585b-93eb-4a4a-a60f-e875640dcec2.png)
 
 _(A comparison of the business and technical drivers for ISO 27001, ISO 27002, COBIT and ITIL, 2016)_
@@ -439,14 +450,6 @@ _**6. Standards and frameworks that are used for planning IT audit activity:**_
 
 _**7. IT audit in accordance with Cobit standard:**_
 In today's market circumstances, the fact that the number of jobs that are taking place with the help of information systems constantly growing is indisputable. Managers often know very little about the information system and in that circumstance it is very difficult to them to effectively perform control function and successfully manage information.
-**Interactions:**
-1. **ITIL** was designed as a service management framework to help you understand how you support processes, how you deliver services
-2. **COBIT** was designed as an IT governance model, particularly and initially with audit in mind to give you control objectives and control practices on how that process should behave
-3. The difference between the two is, COBIT tells you what you should be doing, while ITIL tells you how you should be doing it Put COBIT and ITIL together, and you have a very powerful model of what you need to be doing and how you need to be doing it, when it comes to your process management
-4. **Basically ISO** gives security, but does not provide to acknowledge of how to integrate them into business process
-     - ITIL focus IT processes
-     - COBIT focuses on control and metrics
- So, a combination of all three is usually the best approach. **COBIT** can be used to determine if the company’s needs are being properly supported by IT.**ISO** can be used to determine and improve upon company’s security posture. And **ITIL** can be used to improve IT processes to meet the company’s goals (including security).
 
 _**8. ITIL4 - ISO 27001/27002:2022 – COBIT2022 Mapping:**_
 
@@ -455,4 +458,8 @@ _**8. ITIL4 - ISO 27001/27002:2022 – COBIT2022 Mapping:**_
 and
 
 ![image](https://user-images.githubusercontent.com/106635733/201003847-e75c6bcf-b7a8-4c25-9b52-79eb9d63e5d5.png)
+
+and  Workflow between COBIT to ITIL:
+
+![image](https://user-images.githubusercontent.com/106635733/201007522-06c83b02-eb3f-4494-b441-9d84d43bac84.png)
 
