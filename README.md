@@ -463,3 +463,13 @@ and  Workflow between COBIT to ITIL:
 
 ![image](https://user-images.githubusercontent.com/106635733/201007522-06c83b02-eb3f-4494-b441-9d84d43bac84.png)
 
+
+_**9. COBIT, ITIL and ISO 27002:2022 The main differences:**_
+
+![image](https://user-images.githubusercontent.com/106635733/201030678-0e448b60-8f56-4f73-be05-3a6d1f9b3f57.png)
+
+
+![image](https://user-images.githubusercontent.com/106635733/201031775-2b4b2e56-2dda-47d2-8c06-882ef0a859f6.png)
+_Employing COBIT 2019 for Enterprise Governance Strategy:_
+
+![image](https://user-images.githubusercontent.com/106635733/201032613-0db557e9-4db3-4dfe-aafd-c8fc65faeae7.png)
