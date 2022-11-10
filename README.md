@@ -367,11 +367,58 @@ The Resources module allows, among other things, to add devices installed in RAC
 
 _**1. Overview:**_
 
+**Interactions In Between ITIL, COBIT and ISO27001**
+Many of corporations in nowadays invest to IT Department for keeping benefits of their firms(client, secret fir documents …).Again many of big firms implement ITIL, Cobit and ISO27001 to their IT departments in this invest areas. There are many connections and interactions between these technologies. For show interactions between ITIL, Cobit and ISO27001 i should explain the definitions of these terms. In the first header I will try to express ITIL.
+
+**ITIL (Information Technology Infrastructure Library):**
+    **ITIL**, formerly an acronym for Information Technology Infrastructure Library, is a set of practices for IT service management (ITSM) that focuses on aligning IT services with the needs of business. 
+    (**ITIL**): Responding to growing dependence on IT, the UK Government’s Central Computer and Telecommunications Agency (CCTA) in the 1980s developed a set of recommendations. It recognized that, without standard practices, government agencies and private sector contracts had started independently creating their own IT management practices.
+
+In ITIL 2011 edition ITIL publish 5 main volumes that define **ITSM** stage which are:
+   1. **ITIL** Service Strategy: understands organizational objectives and customer needs.
+   2. **ITIL** Service Design: turns the service strategy into a plan for delivering the business objectives.
+   3. **ITIL** Service Transition: develops and improves capabilities for introducing new services into supported environments.
+   4. **ITIL** Service Operation: manages services in supported environments.
+   5. **ITIL** Continual Service Improvement: achieves services incremental and large-scale improvements.
+
+Key benefits of **ITIL**:
+   1. Manage business risk and service disruption or failure.
+   2. Improve and develop positive relationships with your customers by delivering efficient services that meet their needs.
+   3. Establish cost-effective systems for managing demand for your services.
+   4. Support business change whilst maintaining a stable service environment.
+_(Axelos, 2016)_
+
+**COBIT:**
+Control Objectives for Information and Related Technology (COBIT) is a framework created by ISACA for information technology (IT) management and IT governance. It is a supporting toolset that allows managers to bridge the gap between control requirements, technical issues and business risks.
+**ISACA** first released **COBIT in 1996**; ISACA published the current version, COBIT 5, in 2012.  (Cobit, 2016)
+
+**COBIT has 5 main components which are:**
+  1. Framework
+  2. Process Description
+  3. Control Objectives
+  4. Management guidelines
+  5. Maturity models
+
+**COBIT** focuses on the broader decisions in IT management and does not dwell into technical details. It is a framework of best practices in managing resources, infrastructure, processes, responsibilities, controls, etc.
+It is a good solution when managers are looking for a framework which serves as an integrated solution within itself, rather than having to be implemented along with other IT governance frameworks. However, its biggest short-coming is that it does not give “how to” guidelines to accomplish the control objectives. This is not preferred when the thrust in on correct implementation of security controls. (Arora, 2016)
+
+**ISO27001:**
+ISO 27000 series is a family of IS management standards. It is the set of standards in this family that focuses on Information Systems Management (ISM). Initially known as the BS7799 standard, this was included in the set of ISO standards when ISO decided to include ISMS standards as one of the set of ISO standards. As a result of this, the standards’ name/number was adopted and it was called the ISO17799:2005 series. To bring the Information Security Management Systems (ISMS) standard BS7799-2 in line with other IS standards, this standard was included in the ISO 27000 series as ISO 27001. ISO 27001 defines methods and practices of implementing information security in organizations with detailed steps on how these implemented. They aim to provide reliable and secure communication and data exchange in organizations. Also, it stresses on a risk approach to accomplishing its objectives. This standard dives deep into ways to implement its sub objectives. This puts managers who are looking for clarifications on implementation, at an advantage. However, it fails to achieve the goal of integrating into a larger system. It is standalone in its nature, and does not work as a complete ISM solution. (Arora, 2016)
+
+![image](https://user-images.githubusercontent.com/106635733/201004392-ac868e2c-7ed3-41ba-a5a3-e28e0602fc8d.png)
+
+_COBIT > ITIL > ISO 27001_
+_(Comparison between COBIT, ITIL and ISO 27001, 2016)_
+
 ![image](https://user-images.githubusercontent.com/106635733/200999426-a17a7bc4-c4d4-49cc-a2a0-3347d340bc2f.png)
+
+_COBIT > ITIL > ISO 27002_
 
 _**2. COBIT - ITIL - ISO 27001/27002:2022 as Consolidator:**_
 
-![image](https://user-images.githubusercontent.com/106635733/200999560-ed08920d-8945-4d48-b9ef-7b9e73c7c95f.png)
+![image](https://user-images.githubusercontent.com/106635733/201003738-d376585b-93eb-4a4a-a60f-e875640dcec2.png)
+
+_(A comparison of the business and technical drivers for ISO 27001, ISO 27002, COBIT and ITIL, 2016)_
 
 _**3. Development COBIT framework [8]:**_
 
@@ -382,6 +429,30 @@ _**4. Interrelationships of COBIT Components:**_
 ![image](https://user-images.githubusercontent.com/106635733/201000450-433b2645-bb9d-4d64-9704-5007568105a6.png)
 
 
+_**5. The COBIT cube:**_
 
+![image](https://user-images.githubusercontent.com/106635733/201001003-2119cf37-ee07-47b9-ba65-d16a295066cf.png)
 
+_**6. Standards and frameworks that are used for planning IT audit activity:**_
+
+![image](https://user-images.githubusercontent.com/106635733/201001103-351b2030-cc58-4f39-b93b-166aa8d6aeb6.png)
+
+_**7. IT audit in accordance with Cobit standard:**_
+In today's market circumstances, the fact that the number of jobs that are taking place with the help of information systems constantly growing is indisputable. Managers often know very little about the information system and in that circumstance it is very difficult to them to effectively perform control function and successfully manage information.
+**Interactions:**
+1. **ITIL** was designed as a service management framework to help you understand how you support processes, how you deliver services
+2. **COBIT** was designed as an IT governance model, particularly and initially with audit in mind to give you control objectives and control practices on how that process should behave
+3. The difference between the two is, COBIT tells you what you should be doing, while ITIL tells you how you should be doing it Put COBIT and ITIL together, and you have a very powerful model of what you need to be doing and how you need to be doing it, when it comes to your process management
+4. **Basically ISO** gives security, but does not provide to acknowledge of how to integrate them into business process
+     - ITIL focus IT processes
+     - COBIT focuses on control and metrics
+ So, a combination of all three is usually the best approach. **COBIT** can be used to determine if the company’s needs are being properly supported by IT.**ISO** can be used to determine and improve upon company’s security posture. And **ITIL** can be used to improve IT processes to meet the company’s goals (including security).
+
+_**8. ITIL4 - ISO 27001/27002:2022 – COBIT2022 Mapping:**_
+
+![image](https://user-images.githubusercontent.com/106635733/201003264-e78b169c-10a0-4231-a6b1-a84d24b238cb.png)
+
+and
+
+![image](https://user-images.githubusercontent.com/106635733/201003847-e75c6bcf-b7a8-4c25-9b52-79eb9d63e5d5.png)
 
