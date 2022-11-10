@@ -471,19 +471,23 @@ _How to mapping and compare Key items of COBIT > ITIL > ISO 27002:2022?_
 ![image](https://user-images.githubusercontent.com/106635733/201030678-0e448b60-8f56-4f73-be05-3a6d1f9b3f57.png)
 
 _Employing COBIT 2019 for Enterprise Governance Strategy:_
+
 ![image](https://user-images.githubusercontent.com/106635733/201031775-2b4b2e56-2dda-47d2-8c06-882ef0a859f6.png)
 
-
 _Where is COBIT?_
+
 ![image](https://user-images.githubusercontent.com/106635733/201032613-0db557e9-4db3-4dfe-aafd-c8fc65faeae7.png)
 
 _Mapping of ITIL 4 to COBIT 2019 and the IT4IT standard_
+
 ![image](https://user-images.githubusercontent.com/106635733/201037170-c5630553-fbfa-4549-ae24-7a6db5cef15e.png)
 
 _Table of Mapping Cobit 5 vs ITILv3 2021_
+
 ![image](https://user-images.githubusercontent.com/106635733/201037788-52001ef3-82cf-4cc0-a85d-092cf400bff7.png)
 
-_Tư duy COBIT 2019_ 
+_Tư duy COBIT 2019_
+
 ![image](https://user-images.githubusercontent.com/106635733/201040550-a92f9666-b0bb-4de8-9fbd-df74be59e950.png)
 
 _+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa học = Tâm ta là Tạo tác là dẫn đầu các pháp:_
