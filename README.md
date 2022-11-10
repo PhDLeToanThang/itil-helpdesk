@@ -476,7 +476,7 @@ _Employing COBIT 2019 for Enterprise Governance Strategy:_
 
 _Where is COBIT?_
 
-![image](https://user-images.githubusercontent.com/106635733/201032613-0db557e9-4db3-4dfe-aafd-c8fc65faeae7.png)
+![image](https://user-images.githubusercontent.com/106635733/201042827-f2e8778e-96c0-4692-aa02-bdbe13d30175.png)
 
 _Mapping of ITIL 4 to COBIT 2019 and the IT4IT standard_
 
