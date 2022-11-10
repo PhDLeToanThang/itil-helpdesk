@@ -2,11 +2,13 @@
  IT SAM - IT Asset - ITIL - Helpdesk - Ticket - KB - Troubleshoot - Proposale Internal IT Lead ISO vs Audit
 
 **Chapter 1. Introduction ITL -Helpdesk:**
+
 ![image](https://user-images.githubusercontent.com/106635733/200482934-b52a3b25-85cb-4b18-8db8-ea6e4d01b28a.png)
 
 **I. IT Asset Management:**
 
 ![image](https://user-images.githubusercontent.com/106635733/200490739-c669d256-87fc-4e20-a51c-97d70ad2d48f.png)
+
 IT organizations manage a large amount of the company’s total assets. IT assets are extremely costly to manage and maintain. As a result, asset management plays a major role in helping organizations in fulfilling the requirements of users and business functions.
 
 IT asset management (ITAM) provides an accurate account of technology asset lifecycle costs and risks to maximize the business value of technology strategy, architecture, funding, contractual and sourcing decisions.”
@@ -75,6 +77,7 @@ This process is also responsible for maintaining the service knowledge managemen
 The DIKW Model (also known as DIKW Pyramid, DIKW Hierarchy, Data pyramid, Knowledge Hierarchy) is a hierarchical model for representing the flow of data through information, knowledge, and wisdom.
 
 In this model, the “D” stands for Data, “I” stands for Information, “K” stands for Knowledge, and “W” stands for Wisdom. The reference model has been shown below:
+
 ![image](https://user-images.githubusercontent.com/106635733/200509174-eaad21bb-23b9-4dab-bacd-7b7f24a8d676.png)
 
 **Data:** Data is the collection of discrete facts about events, received as inputs from the processes. Data basically consists of symbols or signs, representing stimuli or signals that are of no use until processed.
@@ -95,6 +98,7 @@ The main purpose of SKMS (ITIL V4) is to store, analyze and present the service 
 The SKMS/ SKBs is closely related to CMDB, KEDB, and CMS. These act as three levels of data processing.
 The CMDB captures & record the configuration data and KEDB Records Known errors, the CMS arranges these records in a manageable structure and then that processed information feeds into the SKMS/SKBs.
 Using these stored information SKMS/SKBs supports delivery of the services and helps to provide relevant information for decision-making. Below Image describes the relationship among them:
+
 ![image](https://user-images.githubusercontent.com/106635733/200510463-c984c945-7e03-45e4-854f-c95a836b7705.png)
 
 **ITIL Knowledge Management Activities:**
@@ -136,6 +140,7 @@ Problems are related to incidents, but it is important to differentiate them in 
 
 _**3 phases of problem management**_
 Problem management involves three distinct phases:
+
 ![image](https://user-images.githubusercontent.com/106635733/200578782-c2604f42-6e1e-4df8-9ce7-b3a419cba475.png)
 
 _**1. Problem Identification**_
@@ -174,22 +179,27 @@ Many problem management activities rely on the knowledge and experience of staff
 
 **III. Ticket:**
 The service assistance module of GLPI meet the specified standards of ITIL v4, the most widely accepted best practice framework for service management software.
+
 ![image](https://user-images.githubusercontent.com/106635733/200584347-cbddf14d-115e-48e0-9bc6-49beb15d608e.png)
 
 ![image](https://user-images.githubusercontent.com/106635733/200585796-076e044b-1b9f-47d7-9f1b-19bfdc40417a.png)
 
 **ITIL solution historical:**
 On the main ITIL objects (Tickets, Problems and Changes), the solutions can now be multiple and so historized
+
 ![image](https://user-images.githubusercontent.com/106635733/200586882-05ebaae4-7ba2-4bd2-92d1-9183f2a6706d.png)
+
 A color code is now available to indicate the approval status of the solution:
   - orange: Waiting for approval ;
   - red: Refused solution ;
   - green: Accepted Solution.
 
 **Helpdesk**
+
 ![image](https://user-images.githubusercontent.com/106635733/200589269-7c2dbce4-eb82-46f7-8010-3f5d591cb384.png)
 
 **ITIL Roadmap:**
+
 ![image](https://user-images.githubusercontent.com/106635733/200590643-2fd13f6a-38a2-4dd0-a050-da0cf80ac5a5.png)
 
 
@@ -202,6 +212,7 @@ An incident is an event that may result in the loss or disruption of an organiza
 These events within a structured organization are normally handled by an incident response team (IRT), an incident management team (IMT), or the Incident Command System (ICS). Without effective incident management, an incident can disrupt business operations, information security, IT systems, employees, customers, or other vital business functions.
 
 Without incident management, you could lose valuable data, gain low productivity and revenue due to downtime, or be held liable for breaches of service level agreements (SLAs). Even when incidents are insignificant and cause no lasting damage, IT teams should devote valuable time to investigating and fixing problems.
+
 ![image](https://user-images.githubusercontent.com/106635733/200489222-2d76ab55-a91a-490e-aa34-0b72cee77830.png)
 
 Some of the most important benefits of implementing an incident management strategy include:
@@ -300,39 +311,56 @@ The incident manager has to track the effectiveness of the incident management o
  7. Incidents that began change tickets
 
 **Chapter 2. Selected functions of ITIL Helpdesk system:**
+
 ![image](https://user-images.githubusercontent.com/106635733/200591405-f7e12942-f079-47d7-b5ad-c478d4729977.png)
+
 ![image](https://user-images.githubusercontent.com/106635733/200591542-90fd9100-6739-4029-b2af-b6f49ae86050.png)
+
 ![image](https://user-images.githubusercontent.com/106635733/200591654-9df13ff9-3621-4f5f-85ae-5c7be8b0d686.png)
 
 _**Control Panel:**_
 The system includes the basic modules: Resources,Support, Management, Tools and Administration.
+
 ![image](https://user-images.githubusercontent.com/106635733/200593344-7b7614fe-6dd9-4efa-aae8-a82ff7063755.png)
 
 _**Ticket queue:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200593446-a260c6d7-cf3f-46b3-948d-bee5ad32d6e7.png)
+
 In the Support module, we gain access to the entire queue of requests. They can be freely filtered with the help of selected rules. You can also create your own "Dashboards" for the convenience of use and the individual needs of the administrator or user.
 
 _**Centralization:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200593554-725c33b2-b303-4d30-b094-33b018cd3584.png)
+
 ITIL Helpdesk is a one system for hardware and ticket management. It provides efficiency and ease of use for managers, administrators, consultants and employees in the company, minimizing the necesity to log into multiple systems.
 
 _**Organizing assets:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200593737-575924b0-777c-4d2c-a028-94a5ad91b143.png)
 
 _**Assets relations:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200593885-21f160b8-bb18-4b0d-8cf7-494eb315238e.png)
+
 Establishing the relationship between requests, equipment and users allows you to determine where, what devices are located, what is connected to it, what programs and licenses are used, who is responsible for them, and provides an insight into the history of requests and issues related to with the device.
 
 _**Transparency:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200594133-0bd5a736-6f20-4783-8149-26b9dcba8f96.png)
+
 For each resource, we can define the name, location, assign a person or group responsible for the device, source, status, type, manufacturer, model, serial number and inventory. We can also identify individual device components such as: operating systems, software installed on the device, network connections, hardware reservations, certificates, history and associated budgets, contracts, invoices, warranties and notifications.
 
 _**Coordination:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200595123-bcbd8dca-d5e1-459a-87f9-937a44742d40.png)
+
 The insight into the queue of applications provides full knowledge of all matters in the company and allows you to prioritize them. Thanks to the record of internal and external notifications, the system works well not only in IT departments, but also in other areas of activity, such as sales, customer service or marketing.
 
 _**Server configuration view:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200595258-18cd80f7-36f8-4417-867c-b2bdf4bf161f.png)
+
 The Resources module allows, among other things, to add devices installed in RACK cabinets,it provides full knowledge about the hardware located in the cabinets and its configuration without the need to visit the server room.
 
 **Chapter 3. Overview of COBIT 5, ITIL 4 and ISO 27001/27002:2022**
@@ -342,12 +370,15 @@ _**1. Overview:**_
 ![image](https://user-images.githubusercontent.com/106635733/200999426-a17a7bc4-c4d4-49cc-a2a0-3347d340bc2f.png)
 
 _**2. COBIT - ITIL - ISO 27001/27002:2022 as Consolidator:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/200999560-ed08920d-8945-4d48-b9ef-7b9e73c7c95f.png)
 
 _**3. Development COBIT framework [8]:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/201000279-c9967d21-4686-4999-a4ca-0ef8b61d46ae.png)
 
 _**4. Interrelationships of COBIT Components:**_
+
 ![image](https://user-images.githubusercontent.com/106635733/201000450-433b2645-bb9d-4d64-9704-5007568105a6.png)
 
 
