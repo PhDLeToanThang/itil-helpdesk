@@ -79,6 +79,21 @@ sudo apt install php8.0-fpm php8.0-common php8.0-mbstring php8.0-xmlrpc php8.0-s
 #Add/Update the values as shown. You may change it as per your requirement.
 # if new php.ini configure then clear sign sharp # comment
 cat > /etc/php/8.0/fpm/php.ini <<END
+[PHP]
+engine = On
+short_open_tag = Off
+precision = 14
+output_buffering = 4096
+zlib.output_compression = Off
+implicit_flush = Off
+unserialize_callback_func =
+serialize_precision = -1
+disable_functions = 
+disable_classes =
+zend.enable_gc = On
+zend.exception_ignore_args = On
+zend.exception_string_param_max_len = 0
+expose_php = Off
 file_uploads = On 
 allow_url_fopen = On 
 memory_limit = 1200M 
@@ -90,7 +105,200 @@ max_input_time = 60
 max_input_nesting_level = 64
 max_input_vars = 5000
 post_max_size = 4096M
+error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
+display_errors = Off
+display_startup_errors = Off
+log_errors = On
+ignore_repeated_errors = Off
+ignore_repeated_source = Off
+report_memleaks = On
+variables_order = "GPCS"
+request_order = "GP"
+register_argc_argv = Off
+auto_globals_jit = On
+auto_prepend_file =
+auto_append_file =
+default_mimetype = "text/html"
+default_charset = "UTF-8"
+doc_root =
+user_dir =
+enable_dl = Off
 session.cookie_httponly = on  
+allow_url_fopen = On
+allow_url_include = Off
+default_socket_timeout = 60
+;extension=bz2
+;extension=curl
+;extension=ffi
+;extension=ftp
+;extension=fileinfo
+;extension=gd
+;extension=gettext
+;extension=gmp
+;extension=intl
+;extension=imap
+;extension=ldap
+;extension=mbstring
+;extension=exif      ; Must be after mbstring as it depends on it
+;extension=mysqli
+;extension=oci8_12c  ; Use with Oracle Database 12c Instant Client
+;extension=oci8_19  ; Use with Oracle Database 19 Instant Client
+;extension=odbc
+;extension=openssl
+;extension=pdo_firebird
+;extension=pdo_mysql
+;extension=pdo_oci
+;extension=pdo_odbc
+;extension=pdo_pgsql
+;extension=pdo_sqlite
+;extension=pgsql
+;extension=shmop
+;extension=snmp
+;extension=soap
+;extension=sockets
+;extension=sodium
+;extension=sqlite3
+;extension=tidy
+;extension=xsl
+;zend_extension=opcache
+[CLI Server]
+cli_server.color = On
+
+[Date]
+;date.timezone =
+
+; https://php.net/date.default-latitude
+;date.default_latitude = 31.7667
+
+; https://php.net/date.default-longitude
+;date.default_longitude = 35.2333
+
+
+[filter]
+
+[iconv]
+
+[imap]
+
+[intl]
+
+[sqlite3]
+
+[Pcre]
+
+[Pdo]
+
+[Pdo_mysql]
+pdo_mysql.default_socket=
+
+[Phar]
+
+[mail function]
+SMTP = localhost
+; https://php.net/smtp-port
+smtp_port = 25
+;sendmail_from = me@example.com
+;sendmail_path =
+;mail.force_extra_parameters =
+mail.add_x_header = Off
+;mail.log = syslog
+
+[ODBC]
+odbc.allow_persistent = On
+odbc.check_persistent = On
+odbc.max_persistent = -1
+odbc.max_links = -1
+odbc.defaultlrl = 4096
+odbc.defaultbinmode = 1
+
+[MySQLi]
+mysqli.max_persistent = -1
+mysqli.allow_persistent = On
+mysqli.max_links = -1
+mysqli.default_port = 3306
+mysqli.default_socket =
+mysqli.default_host =
+mysqli.default_user =
+mysqli.default_pw =
+mysqli.reconnect = Off
+
+[mysqlnd]
+mysqlnd.collect_statistics = On
+mysqlnd.collect_memory_statistics = Off
+
+[OCI8]
+
+[PostgreSQL]
+pgsql.allow_persistent = On
+pgsql.auto_reset_persistent = Off
+pgsql.max_persistent = -1
+pgsql.max_links = -1
+pgsql.ignore_notice = 0
+pgsql.log_notice = 0
+
+[bcmath]
+bcmath.scale = 0
+
+[browscap]
+
+[Session]
+session.save_handler = files
+session.use_strict_mode = 0
+session.use_cookies = 1
+session.use_only_cookies = 1
+session.name = PHPSESSID
+session.auto_start = 0
+session.cookie_lifetime = 0
+session.cookie_path = /
+session.cookie_domain =
+session.cookie_httponly =
+session.cookie_samesite =
+session.serialize_handler = php
+session.gc_probability = 0
+session.gc_divisor = 1000
+session.gc_maxlifetime = 1440
+session.referer_check =
+session.cache_limiter = nocache
+session.cache_expire = 180
+session.use_trans_sid = 0
+session.sid_length = 26
+session.trans_sid_tags = "a=href,area=href,frame=src,form="
+session.sid_bits_per_character = 5
+
+[Assertion]
+zend.assertions = -1
+
+[COM]
+
+[mbstring]
+
+[gd]
+
+[exif]
+
+[Tidy]
+tidy.clean_output = Off
+
+[soap]
+soap.wsdl_cache_enabled=1
+soap.wsdl_cache_dir="/tmp"
+soap.wsdl_cache_ttl=86400
+soap.wsdl_cache_limit = 5
+
+[sysvshm]
+
+[ldap]
+ldap.max_links = -1
+
+[dba]
+
+[opcache]
+
+[curl]
+
+[openssl]
+
+[ffi]
 END
 
 systemctl restart php8.0-fpm.service
