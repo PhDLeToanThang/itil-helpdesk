@@ -439,7 +439,6 @@ _**4. Interrelationships of COBIT Components:**_
 
 ![image](https://user-images.githubusercontent.com/106635733/201000450-433b2645-bb9d-4d64-9704-5007568105a6.png)
 
-
 _**5. The COBIT cube:**_
 
 ![image](https://user-images.githubusercontent.com/106635733/201001003-2119cf37-ee07-47b9-ba65-d16a295066cf.png)
@@ -474,8 +473,6 @@ _Employing COBIT 2019 for Enterprise Governance Strategy:_
 
 ![image](https://user-images.githubusercontent.com/106635733/201031775-2b4b2e56-2dda-47d2-8c06-882ef0a859f6.png)
 
-_Where is COBIT?_
-
 ![image](https://user-images.githubusercontent.com/106635733/201042827-f2e8778e-96c0-4692-aa02-bdbe13d30175.png)
 
 _Mapping of ITIL 4 to COBIT 2019 and the IT4IT standard_
@@ -491,4 +488,5 @@ _Tư duy COBIT 2019_
 ![image](https://user-images.githubusercontent.com/106635733/201040550-a92f9666-b0bb-4de8-9fbd-df74be59e950.png)
 
 _+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa học = Tâm ta là Tạo tác là dẫn đầu các pháp:_
+
 ![image](https://user-images.githubusercontent.com/106635733/201040641-4526b752-7686-485d-a1d3-30ebad3683aa.png)
