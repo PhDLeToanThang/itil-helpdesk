@@ -490,3 +490,7 @@ _Tư duy COBIT 2019_
 _+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa học = Tâm ta là Tạo tác là dẫn đầu các pháp:_
 
 ![image](https://user-images.githubusercontent.com/106635733/201040641-4526b752-7686-485d-a1d3-30ebad3683aa.png)
+
+
+****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/main/itil-deploy.sh && sudo bash itil-deploy.sh
