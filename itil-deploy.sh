@@ -171,13 +171,13 @@ sudo chown www-data /var/www/html/$FOLDERDATA
 
 #Step 8. Configure NGINX
 
-#Next, you will need to create an Nginx virtual host configuration file to host Moodle:
+#Next, you will need to create an Nginx virtual host configuration file to host ITIL:
 #$ nano /etc/nginx/conf.d/$FQDN.conf
 echo 'server {'  >> /etc/nginx/conf.d/$FQDN.conf
 echo '    listen 80;' >> /etc/nginx/conf.d/$FQDN.conf
-echo '    root /var/www/html/'$FQDN';'>> /etc/nginx/conf.d/$FQDN.conf
+echo '    root '/var/www/html/${FQDN}';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    index  index.php index.html index.htm;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    server_name '$FQDN';'>> /etc/nginx/conf.d/$FQDN.conf
+echo '    server_name '${FQDN}';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    client_max_body_size 512M;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    autoindex off;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location / {'>> /etc/nginx/conf.d/$FQDN.conf
@@ -185,7 +185,7 @@ echo '        try_files $uri $uri/ =404;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location /dataroot/ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '      internal;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '      alias /var/www/html/'$FOLDERDATA'/;'>> /etc/nginx/conf.d/$FQDN.conf
+echo '      alias '/var/www/html/$FOLDERDATA/';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location ~ [^/].php(/|$) {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include snippets/fastcgi-php.conf;'>> /etc/nginx/conf.d/$FQDN.conf
