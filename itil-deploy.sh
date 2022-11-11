@@ -72,26 +72,27 @@ sudo mysql_secure_installation
 sudo apt-get install software-properties-common
 sudo add-apt-repository ppa:ondrej/php
 sudo apt update
-sudo apt install php8.0-fpm php8.0-common php8.0-mbstring php8.0-xmlrpc php8.0-soap php8.0-gd php8.0-xml php8.0-intl php8.0-mysql php8.0-cli php8.0-mcrypt php8.0-ldap php8.0-zip php8.0-curl 
+sudo apt install php8.0-fpm php8.0-common php8.0-mbstring php8.0-xmlrpc php8.0-soap php8.0-gd php8.0-xml php8.0-intl php8.0-mysql php8.0-cli php8.0-mcrypt php8.0-ldap php8.0-zip php8.0-curl php8.0-bz2
 
 #Open PHP-FPM config file.
-
 #sudo nano /etc/php/8.0/fpm/php.ini
 #Add/Update the values as shown. You may change it as per your requirement.
 # if new php.ini configure then clear sign sharp # comment
-#cat > /etc/php/8.0/fpm/php.ini <<END
-#file_uploads = On 
-#allow_url_fopen = On 
-#memory_limit = 1200M 
-#upload_max_filesize = 4096M
-#max_execution_time = 360 
-#cgi.fix_pathinfo = 0 
-#date.timezone = asia/ho_chi_minh
-#max_input_time = 60
-#max_input_nesting_level = 64
-#max_input_vars = 5000
-#post_max_size = 4096M
-#END
+cat > /etc/php/8.0/fpm/php.ini <<END
+file_uploads = On 
+allow_url_fopen = On 
+memory_limit = 1200M 
+upload_max_filesize = 4096M
+max_execution_time = 360 
+cgi.fix_pathinfo = 0 
+date.timezone = asia/ho_chi_minh
+max_input_time = 60
+max_input_nesting_level = 64
+max_input_vars = 5000
+post_max_size = 4096M
+session.cookie_httponly = on  
+END
+
 systemctl restart php8.0-fpm.service
 
 #Step 4. Create ITIL Database
@@ -151,6 +152,10 @@ sudo chmod -R 755 /var/www/html/$FQDN/
 sudo chown www-data /var/www/html/$FOLDERDATA
 
 #Step 7: Finish GLPI installation
+cat > /etc/hosts <<END
+127.0.0.1 $FQDN
+END
+
 #Visit your server IP or hostname URL on /glpi. If it is your local machine, you can use: http://127.0.0.1/glpi/install/install.php
 #On the first page, Select your language.
 #Accept License terms and click “Continue“.
