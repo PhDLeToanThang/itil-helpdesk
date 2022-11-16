@@ -416,14 +416,6 @@ echo '	location ~ ^/(doc|sql|setup)/{'>> /etc/nginx/conf.d/$FQDN.conf
 echo '		deny all;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '	}'>> /etc/nginx/conf.d/$FQDN.conf
 echo '}'>> /etc/nginx/conf.d/$FQDN.conf
-echo 'server {'>> /etc/nginx/conf.d/$FQDN.conf 
-echo '    if ($host = ${FQDN}) {'>> /etc/nginx/conf.d/$FQDN.conf
-echo '        return 301 https://$host$request_uri;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    } # managed by Certbot'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    listen 80;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    server_name ${FQDN};'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    return 404; # managed by Certbot'>> /etc/nginx/conf.d/$FQDN.conf
-echo '}'>> /etc/nginx/conf.d/$FQDN.conf
 
 #Save and close the file then verify the Nginx for any syntax error with the following command: 
 nginx -t
