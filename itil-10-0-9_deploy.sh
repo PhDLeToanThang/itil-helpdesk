@@ -1,3 +1,7 @@
+#!/bin/bash
+# Check if user is root or sudo
+if ! [ $(id -u) = 0 ]; then echo "Please run this script as sudo or root"; exit 1 ; fi
+
 # D:\Documents\GitHub\itil-helpdesk\itil-10-0-9_deploy.sh
 # Code Deploy itil server On-premise:
 # Install Itil on Ubuntu 20.04 LTSC or 22.04 LTSC linux server OS:
