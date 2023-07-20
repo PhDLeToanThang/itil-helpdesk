@@ -339,9 +339,9 @@ cd glpi
 #sudo git branch --track $GitGLPIversion origin/$GitGLPIversion
 
 #if get error
-git fetch
+#git fetch
 #Finally, Check out the ITIL version specified 
-sudo git checkout $GitGLPIversion
+#sudo git checkout $GitGLPIversion
 #Run the following command to extract package to NGINX website root folder.
 sudo cp -R /opt/glpi /var/www/html/$FQDN
 sudo mkdir /var/www/html/$FOLDERDATA
