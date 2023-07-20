@@ -1,18 +1,6 @@
-#!/bin/bash
-# Check if user is root or sudo
-if ! [ $(id -u) = 0 ]; then echo "Please run this script as sudo or root"; exit 1 ; fi
-
-# D:\Documents\GitHub\itil-helpdesk\itil-10-0-9_deploy.sh
-# Code Deploy itil server On-premise:
-# Install Itil on Ubuntu 20.04 LTSC or 22.04 LTSC linux server OS:
-# GLPI is a powerful open source IT service management (ITSM) software tool designed to help you plan and easily manage your IT operations.
-# This is source code deploy for Multi-tenance for more instance ITIL - ITSM.
-
-#Step 1: Update Ubuntu
-sudo apt update
-
-#You can also upgrade installed packages by running the following command.
-sudo apt -y upgrade
+# Step 1: Update Ubuntu
+# sudo apt update
+# sudo apt -y upgrade
 
 clear
 cd ~
