@@ -1,6 +1,6 @@
 # D:\Documents\GitHub\itil-helpdesk\itil-10-0-9_deploy.sh
 # Code Deploy itil server On-premise:
-# Install Itil on Ubuntu 20.04 linux server OS:
+# Install Itil on Ubuntu 20.04 LTSC or 22.04 LTSC linux server OS:
 # GLPI is a powerful open source IT service management (ITSM) software tool designed to help you plan and easily manage your IT operations.
 # This is source code deploy for Multi-tenance for more instance ITIL - ITSM.
 
