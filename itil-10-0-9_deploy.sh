@@ -384,19 +384,19 @@ END
 #Next, you will need to create an Nginx virtual host configuration file to host ITIL:
 #$ nano /etc/nginx/conf.d/$FQDN.conf
 echo 'server {'  >> /etc/nginx/conf.d/$FQDN.conf
-echo '    root '/var/www/html/${FQDN}';'>> /etc/nginx/conf.d/$FQDN.conf
+echo '    root '/var/www/html/${FQDN}/public';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    index  index.php index.html index.htm;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    server_name '${FQDN}';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    client_max_body_size 512M;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    autoindex off;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location / {'>> /etc/nginx/conf.d/$FQDN.conf
-echo '        try_files $uri $uri/ =404;'>> /etc/nginx/conf.d/$FQDN.conf
+echo '        try_files $uri /index.php$is_args$args;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location /dataroot/ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '      internal;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '      alias '/var/www/html/$FOLDERDATA/';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    location ~ [^/].php(/|$) {'>> /etc/nginx/conf.d/$FQDN.conf
+echo '    location ~ ^/index\.php$'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include snippets/fastcgi-php.conf;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_pass unix:/run/php/php8.0-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;'>> /etc/nginx/conf.d/$FQDN.conf
@@ -424,21 +424,21 @@ whereis apache2
 apache2: /etc/apache2
 sudo rm -rf /etc/apache2
 
-sudo ln -s /usr/share/phpmyadmin /var/www/html/$FQDN/$phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /var/www/html/$FQDN/public/$phpmyadmin
 sudo chown -R root:root /var/lib/phpmyadmin
 sudo nginx -t
 
-#Step 11. Nâng cấp PhpmyAdmin lên version 5.2:
+#Step 11. Nâng cấp PhpmyAdmin lên version 5.2.1:
 sudo mv /usr/share/phpmyadmin/ /usr/share/phpmyadmin.bak
 sudo mkdir /usr/share/phpmyadmin/
 cd /usr/share/phpmyadmin/
-sudo wget https://files.phpmyadmin.net/phpMyAdmin/5.2.0/phpMyAdmin-5.2.0-all-languages.tar.gz
-sudo tar xzf phpMyAdmin-5.2.0-all-languages.tar.gz
+sudo wget https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz
+sudo tar xzf phpMyAdmin-5.2.1-all-languages.tar.gz
 #Once extracted, list folder.
 ls
-#You should see a new folder phpMyAdmin-5.2.0-all-languages
+#You should see a new folder phpMyAdmin-5.2.1-all-languages
 #We want to move the contents of this folder to /usr/share/phpmyadmin
-sudo mv phpMyAdmin-5.2.0-all-languages/* /usr/share/phpmyadmin
+sudo mv phpMyAdmin-5.2.1-all-languages/* /usr/share/phpmyadmin
 ls /usr/share/phpmyadmin
 mkdir /usr/share/phpMyAdmin/tmp   # tạo thư mục cache cho phpmyadmin 
 
