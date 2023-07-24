@@ -4,21 +4,21 @@ cd ~
 
 ############### Tham số cần thay đổi ở đây ###################
 echo "FQDN: e.g: demo.company.vn"   # Đổi địa chỉ web thứ nhất Website Master for Resource code - để tạo cùng 1 Source code duy nhất 
-read -p FQDN
+read -e FQDN
 echo "dbname: e.g: itildata"   # Tên DBNane
-read -p dbname
+read -e dbname
 echo "dbuser: e.g: userdata"   # Tên User access DB lmsatcuser
-read -p dbuser
+read -e dbuser
 echo "Database Password: e.g: P@$$w0rd-1.22"
 read -s dbpass
 echo "phpmyadmin folder name: e.g: phpmyadmin"   # Đổi tên thư mục phpmyadmin khi add link symbol vào Website 
-read -p phpmyadmin
+read -e phpmyadmin
 echo "ITIL Folder Data: e.g: itildata"   # Tên Thư mục Data vs Cache
-read -p FOLDERDATA
+read -e FOLDERDATA
 echo "dbtype name: e.g: mariadb"   # Tên kiểu Database
-read -p dbtype
+read -e dbtype
 echo "dbhost name: e.g: localhost"   # Tên Db host connector
-read -p dbhost
+read -e dbhost
 
 GitGLPIversion="10.0.9"
 
@@ -318,7 +318,7 @@ systemctl restart mariadb
 
 #Step 6. Download & Install ITIL
 #We will be using Git to install/update the ITIL Core Application 
-sudo apt install git
+#sudo apt install git
 
 cd /opt
 sudo apt-get -y install wget
@@ -343,6 +343,7 @@ cd glpi
 #Run the following command to extract package to NGINX website root folder.
 sudo cp -R /opt/glpi /var/www/html/$FQDN
 sudo mkdir /var/www/html/$FOLDERDATA
+
 #Change the folder permissions.
 sudo chown -R www-data:www-data /var/www/html/$FQDN/ 
 sudo chmod -R 755 /var/www/html/$FQDN/ 
