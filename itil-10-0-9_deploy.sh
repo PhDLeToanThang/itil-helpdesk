@@ -13,7 +13,7 @@ echo "Database Password: e.g: P@$$w0rd-1.22"
 read -s dbpass
 echo "phpmyadmin folder name: e.g: phpmyadmin"   # Đổi tên thư mục phpmyadmin khi add link symbol vào Website 
 read -p phpmyadmin
-echo "ITIL Folder Data: e.g: itildata"   # Tên Thư mục chưa Data vs Cache
+echo "ITIL Folder Data: e.g: itildata"   # Tên Thư mục Data vs Cache
 read -p FOLDERDATA
 echo "dbtype name: e.g: mariadb"   # Tên kiểu Database
 read -p dbtype
