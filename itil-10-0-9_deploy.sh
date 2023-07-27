@@ -397,7 +397,7 @@ echo '    location /dataroot/ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '      internal;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '      alias '/var/www/html/$FOLDERDATA/';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
-echo '    location ~ ^/index\.php$'>> /etc/nginx/conf.d/$FQDN.conf
+echo '    location ~ ^/index\.php$ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include snippets/fastcgi-php.conf;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_pass unix:/run/php/php8.0-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;'>> /etc/nginx/conf.d/$FQDN.conf
