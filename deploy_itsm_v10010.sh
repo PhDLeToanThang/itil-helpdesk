@@ -20,7 +20,7 @@ read -e dbtype
 echo "dbhost name: e.g: localhost"   # Tên Db host connector
 read -e dbhost
 
-GitGLPIversion="10.0.9"
+GitGLPIversion="10.0.10"
 
 echo "run install? (y/n)"
 read -e run
