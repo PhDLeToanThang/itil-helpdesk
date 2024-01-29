@@ -493,8 +493,10 @@ _+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa h�
 
 
 ****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
-Version mới 6 tháng trước: 10.9
+Version mới 6 tháng trước: 10.9:
+
 wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-10-0-9_deploy.sh && sudo bash itil-10-0-9_deploy.sh
 
-version cũ 2 năm trước: 10.5
+version cũ 2 năm trước: 10.5:
+
 wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-deploy.sh && sudo bash itil-deploy.sh
