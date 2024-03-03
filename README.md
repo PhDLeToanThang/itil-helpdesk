@@ -1,4 +1,23 @@
-# ITIL - Helpdesk:
+# Phần 1: Thực hiện triển khai xây dựng ITSM - ITIL Helpdesk Server:
+
+****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
+- Phiên bản mới nhất Feb.2024: 10.0.12:
+  
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-10-0-12_deploy.sh && sudo bash itil-10-0-12_deploy.sh
+  
+- Phiên bản 6 tháng trước: 10.0.9:
+
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-10-0-9_deploy.sh && sudo bash itil-10-0-9_deploy.sh
+
+- Phiên bản cũ 2 năm trước: 10.5:
+
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-deploy.sh && sudo bash itil-deploy.sh
+
+
+# Phần 2: Lý thuyết tổng thể về ITSM - ITAM - ITIL Helpdesk và các tiêu chuẩn ngành COSO - COBIT - ITIL - PCI:
+
+****ITIL - Helpdesk:****
+
  IT SAM - IT Asset - ITIL - Helpdesk - Ticket - KB - Troubleshoot - Proposale Internal IT Lead ISO vs Audit
 
 **Chapter 1. Introduction ITL -Helpdesk:**
@@ -490,14 +509,3 @@ _Tư duy COBIT 2019_
 _+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa học = Tâm ta là Tạo tác là dẫn đầu các pháp:_
 
 ![image](https://user-images.githubusercontent.com/106635733/201040641-4526b752-7686-485d-a1d3-30ebad3683aa.png)
-
-
-****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
-
-Version mới 6 tháng trước: 10.9:
-
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-10-0-9_deploy.sh && sudo bash itil-10-0-9_deploy.sh
-
-version cũ 2 năm trước: 10.5:
-
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/itil-deploy.sh && sudo bash itil-deploy.sh
