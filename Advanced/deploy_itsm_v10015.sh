@@ -67,13 +67,13 @@ sudo mysql_secure_installation
 sudo apt-get install software-properties-common -y
 sudo add-apt-repository ppa:ondrej/php
 sudo apt update -y
-sudo apt install php8.3-fpm php8.3-common php8.3-mbstring php8.3-xmlrpc php8.3-soap php8.3-gd php8.3-xml php8.3-intl php8.3-mysql php8.3-cli php8.3-mcrypt php8.3-ldap php8.3-zip php8.3-curl php8.3-bz2 -y
+sudo apt install php8.2-fpm php8.2-common php8.2-mbstring php8.2-xmlrpc php8.2-soap php8.2-gd php8.2-xml php8.2-intl php8.2-mysql php8.2-cli php8.2-mcrypt php8.2-ldap php8.2-zip php8.2-curl php8.2-bz2 -y
 
 #Open PHP-FPM config file.
-#sudo nano /etc/php/8.3/fpm/php.ini
+#sudo nano /etc/php/8.2/fpm/php.ini
 #Add/Update the values as shown. You may change it as per your requirement.
 # if new php.ini configure then clear sign sharp # comment
-cat > /etc/php/8.3/fpm/php.ini <<END
+cat > /etc/php/8.2/fpm/php.ini <<END
 [PHP]
 engine = On
 short_open_tag = Off
@@ -259,7 +259,7 @@ ldap.max_links = -1
 [ffi]
 END
 
-systemctl restart php8.3-fpm.service
+systemctl restart php8.2-fpm.service
 
 #Step 4. Create ITIL Database
 #Log into MySQL and create database for ITIL.
@@ -324,11 +324,11 @@ cat > /etc/hosts <<END
 127.0.0.1 localhost
 
 # The following lines are desirable for IPv6 capable hosts
-::1     ip6-localhost ip6-loopback
-fe00::0 ip6-localnet
-ff00::0 ip6-mcastprefix
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters
+# ::1     ip6-localhost ip6-loopback
+# fe00::0 ip6-localnet
+# ff00::0 ip6-mcastprefix
+# ff02::1 ip6-allnodes
+# ff02::2 ip6-allrouters
 END
 
 #Visit your server IP or hostname URL on /glpi. If it is your local machine, you can use: http://127.0.0.1/glpi/install/install.php
@@ -368,7 +368,7 @@ echo '      alias '/var/www/html/$FOLDERDATA/';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location ~ ^/index\.php$ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include snippets/fastcgi-php.conf;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '        fastcgi_pass unix:/run/php/php8.3-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
+echo '        fastcgi_pass unix:/run/php/php8.2-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include fastcgi_params;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
@@ -413,7 +413,7 @@ ls /usr/share/phpmyadmin
 mkdir /usr/share/phpMyAdmin/tmp   # tạo thư mục cache cho phpmyadmin 
 
 sudo systemctl restart nginx
-systemctl restart php8.3-fpm.service
+systemctl restart php8.2-fpm.service
 
 #Step 12. Install Certbot
 sudo apt install certbot python3-certbot-nginx -y
