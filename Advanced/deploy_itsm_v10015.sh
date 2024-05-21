@@ -67,13 +67,13 @@ sudo mysql_secure_installation
 sudo apt-get install software-properties-common -y
 sudo add-apt-repository ppa:ondrej/php
 sudo apt update -y
-sudo apt install php8.2-fpm php8.2-common php8.2-mbstring php8.2-xmlrpc php8.2-soap php8.2-gd php8.2-xml php8.2-intl php8.2-mysql php8.2-cli php8.2-mcrypt php8.2-ldap php8.2-zip php8.2-curl php8.2-bz2 -y
+sudo apt install php8.0-fpm php8.0-common php8.0-mbstring php8.0-xmlrpc php8.0-soap php8.0-gd php8.0-xml php8.0-intl php8.0-mysql php8.0-cli php8.0-mcrypt php8.0-ldap php8.0-zip php8.0-curl php8.0-bz2 -y
 
 #Open PHP-FPM config file.
-#sudo nano /etc/php/8.2/fpm/php.ini
+#sudo nano /etc/php/8.0/fpm/php.ini
 #Add/Update the values as shown. You may change it as per your requirement.
 # if new php.ini configure then clear sign sharp # comment
-cat > /etc/php/8.2/fpm/php.ini <<END
+cat > /etc/php/8.0/fpm/php.ini <<END
 [PHP]
 engine = On
 short_open_tag = Off
@@ -259,7 +259,7 @@ ldap.max_links = -1
 [ffi]
 END
 
-systemctl restart php8.2-fpm.service
+systemctl restart php8.0-fpm.service
 
 #Step 4. Create ITIL Database
 #Log into MySQL and create database for ITIL.
@@ -368,7 +368,7 @@ echo '      alias '/var/www/html/$FOLDERDATA/';'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    location ~ ^/index\.php$ {'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include snippets/fastcgi-php.conf;'>> /etc/nginx/conf.d/$FQDN.conf
-echo '        fastcgi_pass unix:/run/php/php8.2-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
+echo '        fastcgi_pass unix:/run/php/php8.0-fpm.sock;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '        include fastcgi_params;'>> /etc/nginx/conf.d/$FQDN.conf
 echo '    }'>> /etc/nginx/conf.d/$FQDN.conf
@@ -413,7 +413,7 @@ ls /usr/share/phpmyadmin
 mkdir /usr/share/phpMyAdmin/tmp   # tạo thư mục cache cho phpmyadmin 
 
 sudo systemctl restart nginx
-systemctl restart php8.2-fpm.service
+systemctl restart php8.0-fpm.service
 
 #Step 12. Install Certbot
 sudo apt install certbot python3-certbot-nginx -y
