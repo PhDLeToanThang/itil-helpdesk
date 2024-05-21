@@ -1,34 +1,29 @@
 ######################################################################################
-#    What's new GLPI 10.0.12 so với 10.0.9 / 10.0.10 là gì ?
-#		You will find below the list of security issues fixed in this bugfixes version:
-#  		1. Reflected XSS in reports pages (CVE-TODO)
-#		2. LDAP Injection during authentication (CVE-2023-51446)
-#		Also, here is a short list of main changes done in this version: https://github.com/glpi-project/glpi/milestone/64?closed=1
-# 		1. Regression with entity selector missing cache invalidation
-#		2. Better handling of connection issues during LDAP synchronization
-#	 	3. The entity selector get significant reduction of load time in some cases
+#    What's new GLPI 10.0.15
 ######################################################################################
-#!/bin/bash
+#!/bin/bash -e
 clear
 cd ~
 
 ############### Tham số cần thay đổi ở đây ###################
 echo "FQDN: e.g: demo.company.vn"   # Đổi địa chỉ web thứ nhất Website Master for Resource code - để tạo cùng 1 Source code duy nhất 
 read -e FQDN
-echo "dbname: e.g: itildata"   # Tên DBNane
+echo "dbname: e.g: itildata  <không dùng ký tự đặc biệt, độ dài tối đa: 9 ký tự>"   # Tên DBNane 
 read -e dbname
-echo "dbuser: e.g: userdata"   # Tên User access DB lmsatcuser
+echo "dbuser: e.g: userdata  <không dùng ký tự đặc biệt, độ dài tối đa: 9 ký tự>"   # Tên User access DB lmsatcuser
 read -e dbuser
 echo "Database Password: e.g: P@$$w0rd-1.22"
 read -s dbpass
-echo "phpmyadmin folder name: e.g: phpmyadmin"   # Đổi tên thư mục phpmyadmin khi add link symbol vào Website 
+echo "phpmyadmin folder name: e.g: phpmyadmin  <không dùng ký tự đặc biệt, độ dài tối đa: 9 ký tự>"   # Đổi tên thư mục phpmyadmin khi add link symbol vào Website 
 read -e phpmyadmin
-echo "ITIL Folder Data: e.g: itildata"   # Tên Thư mục Data vs Cache
+echo "ITIL Folder Data: e.g: itildata  <không dùng ký tự đặc biệt, độ dài tối đa: 9 ký tự>"   # Tên Thư mục Data vs Cache
 read -e FOLDERDATA
 echo "dbtype name: e.g: mariadb"   # Tên kiểu Database
 read -e dbtype
 echo "dbhost name: e.g: localhost"   # Tên Db host connector
 read -e dbhost
+echo "Email Address of Admin SSL/TLS, e.g: thang.lee@company.vn" 
+read -e EMAIL
 
 GitGLPIversion="10.0.15"
 
@@ -39,15 +34,15 @@ if [ "$run" == n ] ; then
 else
 
 #Step 1. Install NGINX
-sudo apt-get update
-sudo apt-get install nginx
+sudo apt-get update -y
+sudo apt-get install nginx -y
 sudo systemctl stop nginx.service 
 sudo systemctl start nginx.service 
 sudo systemctl enable nginx.service
 
 #Step 2. Install MariaDB/MySQL
 #Run the following commands to install MariaDB database for Moode. You may also use MySQL instead.
-sudo apt-get install mariadb-server mariadb-client
+sudo apt-get install mariadb-server mariadb-client -y
 
 #Like NGINX, we will run the following commands to enable MariaDB to autostart during reboot, and also start now.
 sudo systemctl stop mysql.service 
@@ -69,9 +64,9 @@ sudo mysql_secure_installation
 # After you enter response for these questions, your MariaDB installation will be secured.
 
 #Step 3. Install PHP-FPM & Related modules
-sudo apt-get install software-properties-common
+sudo apt-get install software-properties-common -y
 sudo add-apt-repository ppa:ondrej/php
-sudo apt update
+sudo apt update -y
 sudo apt install php8.3-fpm php8.3-common php8.3-mbstring php8.3-xmlrpc php8.3-soap php8.3-gd php8.3-xml php8.3-intl php8.3-mysql php8.3-cli php8.3-mcrypt php8.3-ldap php8.3-zip php8.3-curl php8.3-bz2 -y
 
 #Open PHP-FPM config file.
@@ -162,36 +157,22 @@ extension=openssl
 ;zend_extension=opcache
 [CLI Server]
 cli_server.color = On
-
 [Date]
 ;date.timezone =
-
 ; https://php.net/date.default-latitude
 ;date.default_latitude = 31.7667
-
 ; https://php.net/date.default-longitude
 ;date.default_longitude = 35.2333
-
-
 [filter]
-
 [iconv]
-
 [imap]
-
 [intl]
-
 [sqlite3]
-
 [Pcre]
-
 [Pdo]
-
 [Pdo_mysql]
 pdo_mysql.default_socket=
-
 [Phar]
-
 [mail function]
 SMTP = localhost
 ; https://php.net/smtp-port
@@ -201,7 +182,6 @@ smtp_port = 25
 ;mail.force_extra_parameters =
 mail.add_x_header = Off
 ;mail.log = syslog
-
 [ODBC]
 odbc.allow_persistent = On
 odbc.check_persistent = On
@@ -209,7 +189,6 @@ odbc.max_persistent = -1
 odbc.max_links = -1
 odbc.defaultlrl = 4096
 odbc.defaultbinmode = 1
-
 [MySQLi]
 mysqli.max_persistent = -1
 mysqli.allow_persistent = On
@@ -220,13 +199,10 @@ mysqli.default_host =
 mysqli.default_user =
 mysqli.default_pw =
 mysqli.reconnect = Off
-
 [mysqlnd]
 mysqlnd.collect_statistics = On
 mysqlnd.collect_memory_statistics = Off
-
 [OCI8]
-
 [PostgreSQL]
 pgsql.allow_persistent = On
 pgsql.auto_reset_persistent = Off
@@ -234,12 +210,9 @@ pgsql.max_persistent = -1
 pgsql.max_links = -1
 pgsql.ignore_notice = 0
 pgsql.log_notice = 0
-
 [bcmath]
 bcmath.scale = 0
-
 [browscap]
-
 [Session]
 session.save_handler = files
 session.use_strict_mode = 0
@@ -263,40 +236,26 @@ session.use_trans_sid = 0
 session.sid_length = 26
 session.trans_sid_tags = "a=href,area=href,frame=src,form="
 session.sid_bits_per_character = 5
-
 [Assertion]
 zend.assertions = -1
-
 [COM]
-
 [mbstring]
-
 [gd]
-
 [exif]
-
 [Tidy]
 tidy.clean_output = Off
-
 [soap]
 soap.wsdl_cache_enabled=1
 soap.wsdl_cache_dir="/tmp"
 soap.wsdl_cache_ttl=86400
 soap.wsdl_cache_limit = 5
-
 [sysvshm]
-
 [ldap]
 ldap.max_links = -1
-
 [dba]
-
 [opcache]
-
 [curl]
-
 [openssl]
-
 [ffi]
 END
 
@@ -304,12 +263,12 @@ systemctl restart php8.3-fpm.service
 
 #Step 4. Create ITIL Database
 #Log into MySQL and create database for ITIL.
-#!/bin/bash
-mysql -uroot -prootpassword -e "CREATE DATABASE $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci";
-mysql -uroot -prootpassword -e "CREATE USER '$dbuser'@'$dbhost' IDENTIFIED BY '$dbpass'";
-mysql -uroot -prootpassword -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'$dbhost'";
-mysql -uroot -prootpassword -e "FLUSH PRIVILEGES";
-mysql -uroot -prootpassword -e "SHOW DATABASES";
+
+mysql -uroot -prootpassword -e "CREATE DATABASE $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
+mysql -uroot -prootpassword -e "CREATE USER '$dbuser'@'$dbhost' IDENTIFIED BY '$dbpass';";
+mysql -uroot -prootpassword -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'$dbhost';";
+mysql -uroot -prootpassword -e "FLUSH PRIVILEGES;";
+mysql -uroot -prootpassword -e "SHOW DATABASES;";
 
 # Nếu đã có thì bỏ qua đoạn hàm này như thế nào ?
 #Step 5. Next, edit the MariaDB default configuration file and define the innodb_file_format:
@@ -458,7 +417,7 @@ systemctl restart php8.3-fpm.service
 
 #Step 12. Install Certbot
 sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d $FQDN
+sudo certbot --nginx -n -d $FQDN --email $EMAIL --agree-tos --redirect --hsts
 
 # You should test your configuration at:
 # https://www.ssllabs.com/ssltest/analyze.html?d=$FQDN
