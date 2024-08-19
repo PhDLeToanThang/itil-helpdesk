@@ -2,7 +2,12 @@
 
 ****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
 
+- Phiên bản 3.Jul.2024: 10.0.16:
+
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10016.sh && sudo bash deploy_itsm_v10016.sh
+
 - Phiên bản April.2024: 10.0.15:
+
 wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10015.sh && sudo bash deploy_itsm_v10015.sh
 
 Dưới đây là danh sách các vấn đề bảo mật đã được khắc phục trong phiên bản sửa lỗi 10.0.15 này:
