@@ -3,15 +3,10 @@
 # Install Itil 10.0.16 on Ubuntu 20.04 linux server OS:
 # GLPI is a powerful open source IT service management (ITSM) software tool designed to help you plan and easily manage your IT operations.
 # This is source code deploy for Multi-tenance for more instance ITIL - ITSM.
-
-#Step 1: Update Ubuntu
-sudo apt update
-
-#You can also upgrade installed packages by running the following command.
-sudo apt -y upgrade
-
+#!/bin/bash -e
 clear
 cd ~
+
 ############### Tham số cần thay đổi ở đây ###################
 echo "FQDN: e.g: demo.company.vn"   # Đổi địa chỉ web thứ nhất Website Master for Resource code - để tạo cùng 1 Source code duy nhất 
 read -e FQDN
@@ -42,7 +37,7 @@ else
 
 #Step 1. Install NGINX
 sudo apt-get update -y
-sudo apt-get install nginx -y 
+sudo apt-get install nginx -y
 sudo systemctl stop nginx.service 
 sudo systemctl start nginx.service 
 sudo systemctl enable nginx.service
@@ -57,10 +52,12 @@ sudo systemctl start mysql.service
 sudo systemctl enable mysql.service
 
 #Run the following command to secure MariaDB installation.
-sudo mysql_secure_installation <<EOF
+#password mysql mariadb , i'm fixed: M@tKh@uS3cr3t  --> you must changit. 
+
+sudo mysql_secure_installation  <<EOF
 y
-@T.c0m@2024
-@T.c0m@2024
+M@tKh@uS3cr3t
+M@tKh@uS3cr3t
 y
 n
 y
@@ -315,7 +312,7 @@ systemctl restart php8.3-fpm.service
 #Step 4. Create ITIL Database
 #Log into MySQL and create database for ITIL.
 # install tool mysql-workbench-community from Tonin Bolzan (tonybolzan)
-sudo snap install mysql-workbench-community -y
+sudo snap install mysql-workbench-community
 
 mysql -uroot -prootpassword -e "CREATE DATABASE $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
 mysql -uroot -prootpassword -e "CREATE USER `$dbuser`@`$dbhost` IDENTIFIED BY `$dbpass`;";
@@ -346,7 +343,7 @@ cd /opt
 sudo apt-get -y install wget
 #Run the following command to download ITIL package.
 #Download the ITIL Code and Index 
-wget https://github.com/glpi-project/glpi/releases/download/$GitGLPIversion/glpi-$GitGLPIversion.tgz
+sudo wget https://github.com/glpi-project/glpi/releases/download/$GitGLPIversion/glpi-$GitGLPIversion.tgz
 #sudo git ITIL clone https://github.com/glpi-project/glpi/releases/download/$GitGLPIversion/glpi-$GitGLPIversion.tgz
 #Change directory into the downloaded ITIL folder
 #Uncompress the downloaded the archive:
