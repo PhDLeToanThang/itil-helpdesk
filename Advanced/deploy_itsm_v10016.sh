@@ -3,9 +3,7 @@
 # Install Itil 10.0.16 on Ubuntu 20.04 linux server OS:
 # GLPI is a powerful open source IT service management (ITSM) software tool designed to help you plan and easily manage your IT operations.
 # This is source code deploy for Multi-tenance for more instance ITIL - ITSM.
-#!/bin/bash -e
-clear
-cd ~
+#!/bin/bash
 
 ############### Tham số cần thay đổi ở đây ###################
 echo "FQDN: e.g: demo.company.vn"   # Đổi địa chỉ web thứ nhất Website Master for Resource code - để tạo cùng 1 Source code duy nhất 
@@ -314,11 +312,12 @@ systemctl restart php8.3-fpm.service
 # install tool mysql-workbench-community from Tonin Bolzan (tonybolzan)
 sudo snap install mysql-workbench-community
 
-mysql -uroot -prootpassword -e "CREATE DATABASE $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
-mysql -uroot -prootpassword -e "CREATE USER `$dbuser`@`$dbhost` IDENTIFIED BY `$dbpass`;";
-mysql -uroot -prootpassword -e "GRANT ALL PRIVILEGES ON `$dbname`.* TO `$dbuser`@`$dbhost`;";
-mysql -uroot -prootpassword -e "FLUSH PRIVILEGES;";
-mysql -uroot -prootpassword -e "SHOW DATABASES;";
+mysql -uroot -prootpassword -e "DROP DATABASE IF EXISTS ${dbname};"
+mysql -uroot -prootpassword -e "CREATE DATABASE IF NOT EXISTS ${dbname} CHARACTER SET utf8 COLLATE utf8_unicode_ci;"
+mysql -uroot -prootpassword -e "CREATE USER IF NOT EXISTS '${dbuser}'@'${dbhost}' IDENTIFIED BY "${dbpass}";"
+mysql -uroot -prootpassword -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${dbuser}'@'${dbhost}';"
+mysql -uroot -prootpassword -e "FLUSH PRIVILEGES;"
+mysql -uroot -prootpassword -e "SHOW DATABASES;"
 
 # Nếu đã có thì bỏ qua đoạn hàm này như thế nào ?
 #Step 5. Next, edit the MariaDB default configuration file and define the innodb_file_format:
