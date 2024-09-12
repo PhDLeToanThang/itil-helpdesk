@@ -324,12 +324,13 @@ mysql -uroot -prootpassword -e "SHOW DATABASES;"
 #nano /etc/mysql/mariadb.conf.d/50-server.cnf
 #Add the following lines inside the [mysqld] section: 
 # if new php.ini configure then clear sign sharp # comment
-#cat > /etc/mysql/mariadb.conf.d/50-server.cnf <<END
-#[mysqld]
-#innodb_file_format = Barracuda
-#innodb_file_per_table = 1
-#innodb_large_prefix = ON
-#END
+cat > /etc/mysql/mariadb.conf.d/50-server.cnf <<END
+[mysqld]
+innodb_file_format = Barracuda
+innodb_file_per_table = 1
+innodb_large_prefix = ON
+max_allowed_packet=128M
+END
 
 #Save the file then restart the MariaDB service to apply the changes.
 systemctl restart mariadb
@@ -398,7 +399,9 @@ END
 # infrastructure/environment. For this, please refer to the 
 
 #Step 8. Configure NGINX
-
+#Them dong lenh xoa noi dung cau hinh trong file conf truoc khi dien thong tin chuan moi:
+cat > /etc/nginx/conf.d/${FQDN}.conf <<END
+END
 #Next, you will need to create an Nginx virtual host configuration file to host ITIL:
 #$ nano /etc/nginx/conf.d/$FQDN.conf
 echo 'server {'  >> /etc/nginx/conf.d/$FQDN.conf
