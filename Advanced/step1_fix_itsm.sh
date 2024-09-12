@@ -38,6 +38,8 @@ sudo ufw allow from 10.10.11.0/24 to any port 3389
 sudo apt install ufw -y
 sudo apt install net-tools -y
 sudo apt install gparted -y
+sudo apt install qemu-guest-agent -y
+sudo apt install gedit -y
 sudo apt install ifupdown -y
 
 # After you already have Cockpit on your server, point your web browser to: https://ip-address-of-machine:9090
