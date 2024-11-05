@@ -105,7 +105,6 @@ memory_limit = 1200M
 upload_max_filesize = 4096M
 max_execution_time = 360 
 cgi.fix_pathinfo = 0 
-date.timezone = asia/ho_chi_minh
 max_input_time = 60
 max_input_nesting_level = 64
 max_input_vars = 5000
@@ -141,7 +140,7 @@ extension=fileinfo
 ;extension=gmp
 extension=intl
 ;extension=imap
-;extension=ldap
+extension=ldap
 extension=mbstring
 ;extension=exif      ; Must be after mbstring as it depends on it
 ;extension=mysqli
@@ -169,7 +168,7 @@ extension=openssl
 cli_server.color = On
 
 [Date]
-;date.timezone =
+date.timezone=Asia/Ho_Chi_Minh
 
 ; https://php.net/date.default-latitude
 ;date.default_latitude = 31.7667
@@ -317,6 +316,7 @@ mysql -uroot -prootpassword -e "DROP DATABASE IF EXISTS ${dbname};"
 mysql -uroot -prootpassword -e "CREATE DATABASE IF NOT EXISTS ${dbname} CHARACTER SET utf8 COLLATE utf8_unicode_ci;"
 mysql -uroot -prootpassword -e "CREATE USER IF NOT EXISTS '${dbuser}'@'${dbhost}' IDENTIFIED BY "${dbpass}";"
 mysql -uroot -prootpassword -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${dbuser}'@'${dbhost}';"
+mysql -uroot -prootpassword -e "GRANT SELECT ON mysql.time_zone_name TO '${dbuser}'@'${dbhost}';"
 mysql -uroot -prootpassword -e "FLUSH PRIVILEGES;"
 mysql -uroot -prootpassword -e "SHOW DATABASES;"
 
