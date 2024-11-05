@@ -256,7 +256,8 @@ session.cookie_lifetime = 0
 session.cookie_path = /
 session.cookie_domain =
 session.cookie_httponly = on
-session.cookie_samesite =
+session.cookie_secure = on
+session.cookie_samesite = Lax
 session.serialize_handler = php
 session.gc_probability = 0
 session.gc_divisor = 1000
@@ -330,6 +331,10 @@ innodb_file_format = Barracuda
 innodb_file_per_table = 1
 innodb_large_prefix = ON
 max_allowed_packet=128M
+
+[server]
+default-time-zone=+7:00
+
 END
 
 #Save the file then restart the MariaDB service to apply the changes.
