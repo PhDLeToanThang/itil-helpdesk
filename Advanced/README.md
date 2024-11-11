@@ -8,7 +8,7 @@
   
 wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10017.sh && sudo bash deploy_itsm_v10017.sh
 
-### Phiên bản mới nhất 30/10/2024: 10.0.17:
+### Phiên bản mới nhất 3/7/2024: 10.0.16:
 - _Nâng cấp source code PHP8.3 khai báo LDAP, SQL in-ject,_
 - _Sửa lỗi code Deploy và cấu hình cho phép nâng cấp từ các phiên bản 9.x lên 10.0.16.
 

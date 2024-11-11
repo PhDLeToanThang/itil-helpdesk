@@ -1,6 +1,6 @@
-# D:\Documents\GitHub\itil-helpdesk\Advanced\deploy_itsm_v10016.sh    GLPI VERSION 10.0.16  updated: 03/07/2024
+# D:\Documents\GitHub\itil-helpdesk\Advanced\deploy_itsm_v10017.sh    GLPI VERSION 10.0.17  updated: 11/11/2024
 # Code Deploy itil server On-premise:
-# Install Itil 10.0.16 on Ubuntu 20.04 linux server OS:
+# Install Itil 10.0.17 on Ubuntu 20.04 linux server OS:
 # GLPI is a powerful open source IT service management (ITSM) software tool designed to help you plan and easily manage your IT operations.
 # This is source code deploy for Multi-tenance for more instance ITIL - ITSM.
 #!/bin/bash

@@ -2,7 +2,16 @@
 
 ****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
 
-- Phiên bản 3.Jul.2024: 10.0.16:
+### Phiên bản mới nhất 11/11/2024: 10.0.17:
+- _Nâng cấp source code PHP8.3 khai báo LDAP, SQL in-ject,_
+- _Hỗ trợ MFA/2FA cho Web API,_
+- _Sửa lỗi Android Mobile Gapp SelfService._
+  
+wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10017.sh && sudo bash deploy_itsm_v10017.sh
+
+### Phiên bản mới nhất 3/7/2024: 10.0.16:
+- _Nâng cấp source code PHP8.3 khai báo LDAP, SQL in-ject,_
+- _Sửa lỗi code Deploy và cấu hình cho phép nâng cấp từ các phiên bản 9.x lên 10.0.16.
 
 wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10016.sh && sudo bash deploy_itsm_v10016.sh
 
