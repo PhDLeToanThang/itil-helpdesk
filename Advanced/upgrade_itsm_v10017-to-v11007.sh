@@ -160,12 +160,25 @@ if [ ${#MISSING[@]} -gt 0 ]; then
     info "Đang cài đặt..."
     PHP_REQUIRED_VER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "8.3")
     
+    # Gỡ các gói PHP cũ đang conflict (vd: php7.4-bcmath chặn php8.3-bcmath)
+    for old_ver in 7.1 7.2 7.3 7.4 8.0 8.1; do
+        dpkg -l "php${old_ver}-*" 2>/dev/null | grep -q "^ii" && {
+            info "Phát hiện PHP ${old_ver} modules cũ, đang gỡ để tránh conflict..."
+            DEBIAN_FRONTEND=noninteractive apt remove -y $(dpkg -l "php${old_ver}-*" 2>/dev/null | grep "^ii" | awk '{print $2}') 2>/dev/null || true
+            DEBIAN_FRONTEND=noninteractive apt autoremove -y 2>/dev/null || true
+        }
+    done
+    
     for mod in "${MISSING[@]}"; do
         pkg="php${PHP_REQUIRED_VER}-${mod}"
-        # Một số module có tên gói khác với tên extension
+        
+        # Mapping tên gói -> extension
         case "$mod" in
             dom|json|session|simplexml|xml|xmlreader|xmlwriter)
                 pkg="php-${mod}"
+                # Các module này built-in trong core, không cần cài riêng
+                info "$mod là built-in, bỏ qua."
+                continue
                 ;;
             mysqli)
                 pkg="php${PHP_REQUIRED_VER}-mysql"
@@ -173,23 +186,39 @@ if [ ${#MISSING[@]} -gt 0 ]; then
             fileinfo)
                 pkg="php${PHP_REQUIRED_VER}-common"
                 ;;
-            gd)
-                pkg="php${PHP_REQUIRED_VER}-gd"
+            ldap)
+                pkg="php${PHP_REQUIRED_VER}-ldap"
                 ;;
         esac
         
-        info "Đang cài $pkg..."
-        DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>/dev/null || {
-            warn "Không thể cài $pkg, thử php-${mod}..."
-            DEBIAN_FRONTEND=noninteractive apt install -y "php-${mod}" 2>/dev/null || {
-                warn "Thử cài php8.3-* đồng loạt..."
-                DEBIAN_FRONTEND=noninteractive apt install -y php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip} 2>/dev/null || true
+        # Kiểm tra gói có tồn tại trong repo không
+        if apt-cache show "$pkg" &>/dev/null; then
+            info "Đang cài $pkg..."
+            DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" || {
+                warn "Lỗi cài $pkg, thử apt-get install..."
+                DEBIAN_FRONTEND=noninteractive apt-get install -y "$pkg" || true
             }
-        }
+        else
+            warn "Gói $pkg không tồn tại trong repo. Tìm gói thay thế..."
+            # Tìm tất cả gói có chứa tên module
+            CANDIDATES=$(apt-cache search "php.*${mod}" 2>/dev/null | grep -i "${PHP_REQUIRED_VER}" | head -5 | awk '{print $1}')
+            if [ -n "$CANDIDATES" ]; then
+                for c in $CANDIDATES; do
+                    info "Thử cài $c..."
+                    DEBIAN_FRONTEND=noninteractive apt install -y "$c" && break
+                done
+            else
+                warn "Không tìm thấy gói nào chứa module $mod cho PHP $PHP_REQUIRED_VER."
+                warn "Thử cài php${PHP_REQUIRED_VER}-* đồng loạt..."
+                DEBIAN_FRONTEND=noninteractive apt install -y "php${PHP_REQUIRED_VER}-bcmath" "php${PHP_REQUIRED_VER}-gd" "php${PHP_REQUIRED_VER}-ldap" 2>/dev/null || true
+            fi
+        fi
     done
     
-    # Kích hoạt modules (quan trọng: phpenmod)
-    phpenmod -v "${PHP_REQUIRED_VER}" bcmath bz2 curl gd intl ldap mbstring mysqli xml zip 2>/dev/null || true
+    # Kích hoạt modules
+    if command -v phpenmod &>/dev/null; then
+        phpenmod -v "${PHP_REQUIRED_VER}" bcmath gd ldap 2>/dev/null || true
+    fi
     
     # Kiểm tra lại sau khi cài
     sleep 1
@@ -202,7 +231,11 @@ if [ ${#MISSING[@]} -gt 0 ]; then
     done
     
     if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
-        warn "Vẫn còn thiếu modules (có thể cần restart): ${MISSING_AFTER[*]}"
+        warn "Vẫn còn thiếu modules: ${MISSING_AFTER[*]}"
+        warn "Thử cài thủ công sau:"
+        for m in "${MISSING_AFTER[@]}"; do
+            warn "  apt install php${PHP_REQUIRED_VER}-${m}"
+        done
     else
         ok "Tất cả PHP modules đã sẵn sàng."
     fi
