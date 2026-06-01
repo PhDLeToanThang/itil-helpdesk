@@ -130,6 +130,18 @@ for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/f
     fi
 done
 
+# Xóa các extension= đã compiled-in trong PHP 8.3 để tránh warning "already loaded"
+# Các module này là built-in trong PHP 8.3, không cần extension= line
+PHP_BUILTIN=("bz2" "curl" "fileinfo" "intl" "mbstring" "openssl" "session" "tokenizer" "xml" "ctype" "dom" "json" "simplexml" "sodium" "sqlite3" "xmlreader" "xmlwriter" "zlib")
+for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/fpm/php.ini; do
+    if [ -f "$ini" ]; then
+        for mod in "${PHP_BUILTIN[@]}"; do
+            sed -i "/^extension\s*=\s*${mod}/d" "$ini" 2>/dev/null || true
+            sed -i "/^extension\s*=\s*php-${mod}/d" "$ini" 2>/dev/null || true
+        done
+    fi
+done
+
 # Kiểm tra PHP modules bắt buộc cho GLPI 11.0
 PHP_MODULES=("bcmath" "bz2" "curl" "dom" "fileinfo" "gd" "intl" "json" "ldap" "mbstring" "mysqli" "openssl" "session" "simplexml" "xml" "xmlreader" "xmlwriter" "zip")
 
@@ -447,24 +459,43 @@ info "Bước 6/7: Nâng cấp database schema GLPI 10.0 → 11.0..."
 
 cd "$GLPI_ROOT"
 
+SU=""
+if [ "$(id -u)" -eq 0 ]; then
+    SU="--allow-superuser"
+fi
+
 if [ -f "bin/console" ]; then
-    # Chạy database update
-    php bin/console glpi:database:update --force --no-interaction 2>&1 || \
-        php bin/console glpi:migration:build --force --no-interaction 2>&1 || \
-        warn "Database upgrade có vấn đề. Chạy thủ công: php bin/console glpi:database:update"
+    # Nâng cấp database schema (GLPI 10.0 -> 11.0)
+    info "Đang nâng cấp database schema (có thể mất vài phút)..."
+    php bin/console glpi:database:update --force --no-interaction $SU 2>/dev/null
+
+    # Kiểm tra kết quả
+    DB_UPGRADE_OK=$?
+    if [ $DB_UPGRADE_OK -ne 0 ]; then
+        warn "glpi:database:update gặp lỗi. Thử phương án migration..."
+        php bin/console glpi:migration:build --force --no-interaction $SU 2>/dev/null || \
+            warn "Database upgrade có vấn đề. Chạy thủ công: php bin/console glpi:database:update --allow-superuser"
+    else
+        ok "Database schema đã được nâng cấp."
+    fi
 
     # Plugin upgrades
-    php bin/console glpi:plugin:list 2>/dev/null | grep -i "not installed\|to update" && \
-        php bin/console glpi:plugin:install --all --force 2>/dev/null || true
+    PLUGIN_LIST=$(php bin/console glpi:plugin:list $SU 2>/dev/null)
+    if echo "$PLUGIN_LIST" | grep -qi "not installed\|to update"; then
+        info "Đang nâng cấp plugins..."
+        php bin/console glpi:plugin:install --all --force $SU 2>/dev/null || true
+    fi
 
-    # Clear cache
-    php bin/console cache:clear --no-interaction 2>/dev/null || true
-    php bin/console glpi:cache:clear --no-interaction 2>/dev/null || true
+    # Clear cache (quan trọng: GLPI 11.0 dùng Symfony cache)
+    php bin/console cache:clear --no-interaction $SU 2>/dev/null || true
+    php bin/console glpi:cache:clear --no-interaction $SU 2>/dev/null || true
+    # Xóa cache thủ công để chắc chắn
+    rm -rf "$GLPI_ROOT/var/cache/"* "$GLPI_ROOT/files/_cache/"* 2>/dev/null || true
 
     ok "Database schema đã được nâng cấp."
 else
     warn "Không tìm thấy bin/console. Có thể cài đặt GLPI chưa đúng."
-    warn "Chạy thủ công: php bin/console glpi:database:update"
+    warn "Chạy thủ công: cd $GLPI_ROOT && php bin/console glpi:database:update --allow-superuser"
 fi
 
 # ============================================================
@@ -516,7 +547,9 @@ echo -e "  Thư mục:      ${CYAN}$GLPI_ROOT${NC}"
 echo -e "  Backup:       ${CYAN}$BACKUP_DIR${NC}"
 echo ""
 echo -e "  ${YELLOW}Kiểm tra nâng cấp thành công:${NC}"
-echo -e "    https://$FQDN/  (trang web)"
+# Trích xuất domain từ đường dẫn GLPI_ROOT để hiển thị
+GLPI_DOMAIN=$(basename "$GLPI_ROOT")
+echo -e "    https://${GLPI_DOMAIN}/  (trang web)"
 echo -e "    php bin/console glpi:database:update  (kiểm tra DB)"
 echo ""
 echo -e "  ${YELLOW}Nếu có lỗi:${NC}"
