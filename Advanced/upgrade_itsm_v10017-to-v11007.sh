@@ -122,20 +122,23 @@ else
     ok "Đã nâng cấp PHP lên $PHP_VERSION."
 fi
 
-# Sửa lỗi extension name sai trong php.ini cũ (10.0.17 ghi "php_ldap.so" thay vì "ldap.so")
+# Sửa lỗi extension name sai trong php.ini cũ (10.0.17 ghi "php-ldap.so" / "php_ldap.so")
 for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/fpm/php.ini; do
     if [ -f "$ini" ]; then
-        sed -i 's/extension=php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
-        # Sửa các extension name sai khác nếu có
-        sed -i 's/extension=php_/extension=/g' "$ini" 2>/dev/null || true
+        sed -i 's/extension\s*=\s*php-ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
+        sed -i 's/extension\s*=\s*php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
     fi
 done
 
 # Kiểm tra PHP modules bắt buộc cho GLPI 11.0
 PHP_MODULES=("bcmath" "bz2" "curl" "dom" "fileinfo" "gd" "intl" "json" "ldap" "mbstring" "mysqli" "openssl" "session" "simplexml" "xml" "xmlreader" "xmlwriter" "zip")
+
+# Lấy danh sách module từ php -m (chỉ lấy 1 lần, tránh flood stderr)
+PHP_MOD_LIST=$(php -m 2>/dev/null || true)
+
 MISSING=()
 for mod in "${PHP_MODULES[@]}"; do
-    if ! php -m | grep -qi "^${mod}$"; then
+    if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
         MISSING+=("$mod")
     fi
 done
@@ -155,51 +158,68 @@ if [ ${#MISSING[@]} -gt 0 ]; then
             mysqli)
                 pkg="php${PHP_REQUIRED_VER}-mysql"
                 ;;
+            fileinfo)
+                pkg="php${PHP_REQUIRED_VER}-common"
+                ;;
+            gd)
+                pkg="php${PHP_REQUIRED_VER}-gd"
+                ;;
         esac
         
         info "Đang cài $pkg..."
-        apt install -y "$pkg" 2>/dev/null || {
-            # Thử với php- thay vì php8.3-
-            apt install -y "php-${mod}" 2>/dev/null || {
-                # Thử cài tất cả trong một lần
-                warn "Không thể cài $pkg, thử apt-get install php8.3-*..."
-                apt install -y php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip} 2>/dev/null || true
+        DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>/dev/null || {
+            warn "Không thể cài $pkg, thử php-${mod}..."
+            DEBIAN_FRONTEND=noninteractive apt install -y "php-${mod}" 2>/dev/null || {
+                warn "Thử cài php8.3-* đồng loạt..."
+                DEBIAN_FRONTEND=noninteractive apt install -y php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip} 2>/dev/null || true
             }
         }
     done
     
+    # Kích hoạt modules (quan trọng: phpenmod)
+    phpenmod -v "${PHP_REQUIRED_VER}" bcmath bz2 curl gd intl ldap mbstring mysqli xml zip 2>/dev/null || true
+    
     # Kiểm tra lại sau khi cài
     sleep 1
+    PHP_MOD_LIST=$(php -m 2>/dev/null || true)
     MISSING_AFTER=()
     for mod in "${PHP_MODULES[@]}"; do
-        if ! php -m | grep -qi "^${mod}$"; then
+        if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
             MISSING_AFTER+=("$mod")
         fi
     done
     
     if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
-        warn "Vẫn còn thiếu modules (có thể cần restart PHP-FPM): ${MISSING_AFTER[*]}"
+        warn "Vẫn còn thiếu modules (có thể cần restart): ${MISSING_AFTER[*]}"
     else
-        ok "Đã cài PHP modules."
+        ok "Tất cả PHP modules đã sẵn sàng."
     fi
 else
     ok "Tất cả PHP modules đã sẵn sàng."
 fi
 
+# Restart PHP-FPM để áp dụng thay đổi
+systemctl restart "php${PHP_MAJOR_MINOR}-fpm" 2>/dev/null || true
+
 # MariaDB / MySQL version
 DB_VERSION=$(mysql --version 2>/dev/null || echo "")
 if echo "$DB_VERSION" | grep -qi "mariadb"; then
-    # Extract MariaDB version
-    MARIADB_VER=$(mysql --version | grep -oP 'mariadb.*?\K(\d+\.\d+)' || echo "0")
+    # Trích xuất MariaDB version (dùng awk thay grep -oP để tương thích tốt hơn)
+    MARIADB_VER=$(mysql --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
+    if [ -z "$MARIADB_VER" ] || [ "$MARIADB_VER" = "0" ]; then
+        mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}'
+        MARIADB_VER=$(mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
+    fi
     if [ "$(printf '%s\n' "10.6" "$MARIADB_VER" | sort -V | head -n1)" = "10.6" ]; then
         ok "MariaDB $MARIADB_VER đạt yêu cầu (≥ 10.6)."
     else
         err "MariaDB $MARIADB_VER quá cũ. Cần ≥ 10.6. Hãy nâng cấp MariaDB trước."
-        err "Tham khảo: https://mariadb.com/kb/en/upgrading/"
+        err "Lệnh nâng cấp: sudo apt install mariadb-server-10.6 mariadb-client-10.6"
+        err "Hoặc: sudo apt install mariadb-server mariadb-client (nếu repo có sẵn)"
         exit 1
     fi
 elif echo "$DB_VERSION" | grep -qi "mysql"; then
-    MYSQL_VER=$(mysql --version | grep -oP 'Distrib \K(\d+\.\d+)' || echo "0")
+    MYSQL_VER=$(mysql --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
     if [ "$(printf '%s\n' "8.0" "$MYSQL_VER" | sort -V | head -n1)" = "8.0" ]; then
         ok "MySQL $MYSQL_VER đạt yêu cầu (≥ 8.0)."
     else
@@ -207,8 +227,21 @@ elif echo "$DB_VERSION" | grep -qi "mysql"; then
         exit 1
     fi
 else
-    err "Không tìm thấy MariaDB/MySQL. Vui lòng kiểm tra database."
-    exit 1
+    # Thử lệnh mariadb nếu mysql không có
+    if command -v mariadb &>/dev/null; then
+        DB_VERSION=$(mariadb --version 2>/dev/null || echo "")
+        MARIADB_VER=$(mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
+        if [ "$(printf '%s\n' "10.6" "$MARIADB_VER" | sort -V | head -n1)" = "10.6" ]; then
+            ok "MariaDB $MARIADB_VER đạt yêu cầu (≥ 10.6)."
+        else
+            err "MariaDB $MARIADB_VER quá cũ. Cần ≥ 10.6."
+            exit 1
+        fi
+    else
+        err "Không tìm thấy MariaDB/MySQL. Vui lòng kiểm tra database."
+        err "Cài đặt: sudo apt install mariadb-server mariadb-client -y"
+        exit 1
+    fi
 fi
 
 # ============================================================
