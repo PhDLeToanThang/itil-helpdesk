@@ -157,70 +157,130 @@ done
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     warn "Thiếu PHP modules: ${MISSING[*]}"
-    info "Đang cài đặt..."
     PHP_REQUIRED_VER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "8.3")
+    info "PHP version hiện tại: $PHP_REQUIRED_VER"
     
-    # Gỡ các gói PHP cũ đang conflict
-    for old_ver in 7.1 7.2 7.3 7.4 8.0 8.1; do
+    # --- Xoá sạch PHP cũ để tránh conflict ---
+    for old_ver in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1; do
         if dpkg -l "php${old_ver}*" 2>/dev/null | grep -q "^ii"; then
-            info "Phát hiện PHP ${old_ver} modules cũ, đang gỡ để tránh conflict..."
-            DEBIAN_FRONTEND=noninteractive apt remove -y $(dpkg -l "php${old_ver}*" 2>/dev/null | grep "^ii" | awk '{print $2}') 2>/dev/null || true
+            info "Gỡ PHP ${old_ver} cũ..."
+            DEBIAN_FRONTEND=noninteractive apt remove --purge -y $(dpkg -l "php${old_ver}*" 2>/dev/null | grep "^ii" | awk '{print $2}') 2>/dev/null || true
         fi
     done
-    DEBIAN_FRONTEND=noninteractive apt autoremove -y 2>/dev/null || true
-    
-    # Cập nhật lại apt sau khi gỡ
+    # Gỡ meta-package php-bcmath, php-gd etc. (chúng trỏ vào PHP mặc định cũ)
+    for meta in php-bcmath php-gd php-ldap php-mysql php-curl php-mbstring php-xml php-zip php-bz2 php-intl php-soap php-xmlrpc; do
+        DEBIAN_FRONTEND=noninteractive apt remove --purge -y "$meta" 2>/dev/null || true
+    done
+    DEBIAN_FRONTEND=noninteractive apt autoremove --purge -y 2>/dev/null || true
     apt update -y 2>/dev/null || true
 
-    # Với mỗi module còn thiếu, thử cài trực tiếp với đầy đủ output
-    for mod in "${MISSING[@]}"; do
-        # Các module built-in trong PHP 8.3 core (không có gói riêng)
-        case "$mod" in
-            dom|json|session|simplexml|xml|xmlreader|xmlwriter|fileinfo)
-                info "$mod là built-in trong PHP $PHP_REQUIRED_VER, bỏ qua."
-                continue
-                ;;
-        esac
-
-        # Xác định tên gói
-        case "$mod" in
-            mysqli)      pkg="php${PHP_REQUIRED_VER}-mysql" ;;
-            ldap)        pkg="php${PHP_REQUIRED_VER}-ldap"  ;;
-            bcmath)      pkg="php${PHP_REQUIRED_VER}-bcmath" ;;
-            gd)          pkg="php${PHP_REQUIRED_VER}-gd" ;;
-            *)           pkg="php${PHP_REQUIRED_VER}-${mod}" ;;
-        esac
-
-        info "Đang cài $pkg..."
-        # Không ẩn lỗi để thấy thông báo thật
-        if DEBIAN_FRONTEND=noninteractive apt install -y "$pkg"; then
-            ok "Cài thành công: $pkg"
+    # --- Cài lại toàn bộ PHP 8.3 + modules trong 1 lần ---
+    info "Cài lại toàn bộ PHP $PHP_REQUIRED_VER và modules..."
+    PHP_PKGS=(
+        php${PHP_REQUIRED_VER}-fpm
+        php${PHP_REQUIRED_VER}-cli
+        php${PHP_REQUIRED_VER}-common
+        php${PHP_REQUIRED_VER}-curl
+        php${PHP_REQUIRED_VER}-gd
+        php${PHP_REQUIRED_VER}-intl
+        php${PHP_REQUIRED_VER}-ldap
+        php${PHP_REQUIRED_VER}-mbstring
+        php${PHP_REQUIRED_VER}-mysql
+        php${PHP_REQUIRED_VER}-xml
+        php${PHP_REQUIRED_VER}-zip
+        php${PHP_REQUIRED_VER}-bz2
+        php${PHP_REQUIRED_VER}-bcmath
+        php${PHP_REQUIRED_VER}-soap
+        php${PHP_REQUIRED_VER}-xmlrpc
+        php${PHP_REQUIRED_VER}-opcache
+        php-ldap
+    )
+    # Cài tuần tự, hiển thị lỗi từng gói
+    for pkg in "${PHP_PKGS[@]}"; do
+        if DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1; then
+            ok "$pkg OK"
         else
-            warn "Không thể cài $pkg. Đang tìm gói thay thế..."
-            # Liệt kê các phiên bản có sẵn (nếu có)
-            apt list --all-versions "php${PHP_REQUIRED_VER}*" 2>/dev/null | grep -i "$mod" || \
-                warn "Không tìm thấy gói nào chứa $mod cho PHP $PHP_REQUIRED_VER trong repo hiện tại."
+            warn "Cài $pkg thất bại (bỏ qua)"
         fi
     done
 
-    # Kiểm tra lại sau khi cài
+    # Kích hoạt modules bằng nhiều cách
+    if command -v phpenmod &>/dev/null; then
+        phpenmod -v "$PHP_REQUIRED_VER" bcmath gd ldap curl mbstring mysqli xml zip bz2 intl soap 2>/dev/null || true
+    fi
+    # Tạo symlink trực tiếp nếu phpenmod không hoạt động
+    PHP_MODS_DIR="/etc/php/${PHP_REQUIRED_VER}/mods-available"
+    PHP_CLI_DIR="/etc/php/${PHP_REQUIRED_VER}/cli/conf.d"
+    PHP_FPM_DIR="/etc/php/${PHP_REQUIRED_VER}/fpm/conf.d"
+    for mod in bcmath gd ldap; do
+        if [ -f "${PHP_MODS_DIR}/${mod}.ini" ]; then
+            [ ! -L "${PHP_CLI_DIR}/20-${mod}.ini" ] && ln -sf "${PHP_MODS_DIR}/${mod}.ini" "${PHP_CLI_DIR}/20-${mod}.ini" 2>/dev/null || true
+            [ ! -L "${PHP_FPM_DIR}/20-${mod}.ini" ] && ln -sf "${PHP_MODS_DIR}/${mod}.ini" "${PHP_FPM_DIR}/20-${mod}.ini" 2>/dev/null || true
+        fi
+    done
+
+    # Kiểm tra lại sau khi cài — dùng cả php -m lẫn PHP function test
     sleep 1
     PHP_MOD_LIST=$(php -m 2>/dev/null || true)
+    BCMATH_FUNC=$(php -r 'echo function_exists("bcadd") ? 1 : 0;' 2>/dev/null || echo "0")
+    
     MISSING_AFTER=()
     for mod in "${PHP_MODULES[@]}"; do
-        if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
-            MISSING_AFTER+=("$mod")
-        fi
+        case "$mod" in
+            dom|fileinfo|json|session|simplexml|xmlreader|xmlwriter)
+                continue ;;
+            bcmath)
+                # Kiểm tra bcmath cả bằng php -m lẫn function_exists
+                if echo "$PHP_MOD_LIST" | grep -qi "^bcmath$" || [ "$BCMATH_FUNC" = "1" ]; then
+                    continue
+                fi
+                MISSING_AFTER+=("$mod")
+                ;;
+            *)
+                if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
+                    MISSING_AFTER+=("$mod")
+                fi
+                ;;
+        esac
     done
-    
+
     if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
         warn "Vẫn còn thiếu modules: ${MISSING_AFTER[*]}"
-        echo ">>> Chạy các lệnh sau để khắc phục:"
-        for m in "${MISSING_AFTER[@]}"; do
-            echo "    sudo apt install php${PHP_REQUIRED_VER}-${m}"
-        done
-        echo ">>> Danh sách gói PHP có sẵn:"
-        apt list --all-versions "php${PHP_REQUIRED_VER}*" 2>/dev/null | grep -v "Listing..."
+        echo ""
+        echo "========== HƯỚNG DẪN SỬA LỖI =========="
+        echo ""
+
+        # Thử tìm bcmath.so trên toàn bộ hệ thống
+        BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
+        if [ -n "$BCMATH_SO" ]; then
+            echo "Tìm thấy bcmath.so tại: $BCMATH_SO"
+            echo "Đang thử kích hoạt thủ công..."
+            echo "extension=$BCMATH_SO" > /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini 2>/dev/null || true
+            ln -sf /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini /etc/php/${PHP_REQUIRED_VER}/cli/conf.d/20-bcmath.ini 2>/dev/null || true
+            ln -sf /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini /etc/php/${PHP_REQUIRED_VER}/fpm/conf.d/20-bcmath.ini 2>/dev/null || true
+            PHP_MOD_LIST=$(php -m 2>/dev/null || true)
+            if echo "$PHP_MOD_LIST" | grep -qi "^bcmath$" || [ "$(php -r 'echo function_exists("bcadd") ? 1 : 0;' 2>/dev/null)" = "1" ]; then
+                ok "Đã kích hoạt bcmath thủ công!"
+                # Xoá khỏi danh sách lỗi
+                MISSING_AFTER=(${MISSING_AFTER[@]/bcmath/})
+            fi
+        fi
+
+        if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
+            echo "Module 'bcmath' rất quan trọng cho GLPI 11.0."
+            echo "Có thể thử tải .deb trực tiếp từ PPA:"
+            echo "  cd /tmp"
+            echo "  wget -r -l1 --no-parent -A 'php8.3-bcmath*.deb' http://ppa.launchpad.net/ondrej/php/ubuntu/pool/main/p/php8.3/"
+            echo "  sudo dpkg -i php8.3-bcmath*.deb"
+            echo ""
+            echo "Hoặc biên dịch từ source:"
+            echo "  sudo apt install php8.3-dev"
+            echo "  cd /tmp && phpize8.3 && wget https://raw.githubusercontent.com/php/php-src/PHP-8.3/ext/bcmath/config.m4"
+            echo ""
+            echo "Danh sách gói PHP ${PHP_REQUIRED_VER} có sẵn:"
+            apt list --all-versions "php${PHP_REQUIRED_VER}*" 2>/dev/null | grep -v "Listing..." || echo "(không có gói nào)"
+        fi
+        echo "========================================"
     else
         ok "Tất cả PHP modules đã sẵn sàng."
     fi
