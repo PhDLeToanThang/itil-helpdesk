@@ -91,14 +91,23 @@ info "Bước 1/7: Kiểm tra tiên quyết..."
 
 # PHP version
 PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "0")
+PHP_MAJOR_MINOR=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "0")
+
+# Luôn đảm bảo PPA ondrej/php đã được thêm (cần cho các gói PHP modules)
+if ! apt-cache policy | grep -q "ondrej/php"; then
+    info "Thêm PPA ondrej/php..."
+    add-apt-repository ppa:ondrej/php -y
+    apt update -y
+else
+    apt update -y 2>/dev/null || true
+fi
+
 if [ "$(printf '%s\n' "8.2" "$PHP_VERSION" | sort -V | head -n1)" = "8.2" ]; then
     ok "PHP $PHP_VERSION đạt yêu cầu (≥ 8.2)."
 else
     warn "PHP hiện tại: $PHP_VERSION. Cần nâng cấp lên PHP 8.2+."
     info "Đang nâng cấp PHP lên 8.3..."
 
-    add-apt-repository ppa:ondrej/php -y
-    apt update -y
     apt install -y php8.3-fpm php8.3-cli php8.3-common php8.3-curl \
         php8.3-gd php8.3-intl php8.3-mbstring php8.3-mysql php8.3-xml \
         php8.3-zip php8.3-bz2 php8.3-bcmath php8.3-ldap php8.3-soap \
@@ -109,8 +118,18 @@ else
     systemctl enable php8.3-fpm || true
 
     PHP_VERSION="8.3"
+    PHP_MAJOR_MINOR="8.3"
     ok "Đã nâng cấp PHP lên $PHP_VERSION."
 fi
+
+# Sửa lỗi extension name sai trong php.ini cũ (10.0.17 ghi "php_ldap.so" thay vì "ldap.so")
+for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/fpm/php.ini; do
+    if [ -f "$ini" ]; then
+        sed -i 's/extension=php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
+        # Sửa các extension name sai khác nếu có
+        sed -i 's/extension=php_/extension=/g' "$ini" 2>/dev/null || true
+    fi
+done
 
 # Kiểm tra PHP modules bắt buộc cho GLPI 11.0
 PHP_MODULES=("bcmath" "bz2" "curl" "dom" "fileinfo" "gd" "intl" "json" "ldap" "mbstring" "mysqli" "openssl" "session" "simplexml" "xml" "xmlreader" "xmlwriter" "zip")
@@ -124,9 +143,45 @@ done
 if [ ${#MISSING[@]} -gt 0 ]; then
     warn "Thiếu PHP modules: ${MISSING[*]}"
     info "Đang cài đặt..."
-    apt install -y "php8.3-${MISSING[*]// / php8.3-}" 2>/dev/null || \
-        apt install -y php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip}
-    ok "Đã cài PHP modules."
+    PHP_REQUIRED_VER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "8.3")
+    
+    for mod in "${MISSING[@]}"; do
+        pkg="php${PHP_REQUIRED_VER}-${mod}"
+        # Một số module có tên gói khác với tên extension
+        case "$mod" in
+            dom|json|session|simplexml|xml|xmlreader|xmlwriter)
+                pkg="php-${mod}"
+                ;;
+            mysqli)
+                pkg="php${PHP_REQUIRED_VER}-mysql"
+                ;;
+        esac
+        
+        info "Đang cài $pkg..."
+        apt install -y "$pkg" 2>/dev/null || {
+            # Thử với php- thay vì php8.3-
+            apt install -y "php-${mod}" 2>/dev/null || {
+                # Thử cài tất cả trong một lần
+                warn "Không thể cài $pkg, thử apt-get install php8.3-*..."
+                apt install -y php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip} 2>/dev/null || true
+            }
+        }
+    done
+    
+    # Kiểm tra lại sau khi cài
+    sleep 1
+    MISSING_AFTER=()
+    for mod in "${PHP_MODULES[@]}"; do
+        if ! php -m | grep -qi "^${mod}$"; then
+            MISSING_AFTER+=("$mod")
+        fi
+    done
+    
+    if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
+        warn "Vẫn còn thiếu modules (có thể cần restart PHP-FPM): ${MISSING_AFTER[*]}"
+    else
+        ok "Đã cài PHP modules."
+    fi
 else
     ok "Tất cả PHP modules đã sẵn sàng."
 fi
