@@ -320,10 +320,17 @@ else
 fi
 
 # Giải nén
-if [ -d "$GLPI_TMP" ]; then
-    rm -rf "$GLPI_TMP"
-fi
+# Lưu ý: GLPI release tar xả vào thư mục glpi/ (không phải glpi-11.0.7/)
+rm -rf /opt/glpi
 tar xvf "glpi-${GitGLPIversion}.tgz" -C /opt/ > /dev/null 2>&1
+
+# Đổi tên thư mục glpi/ -> glpi-11.0.7/ để khớp GLPI_TMP
+if [ -d "/opt/glpi" ] && [ ! -d "$GLPI_TMP" ]; then
+    mv /opt/glpi "$GLPI_TMP"
+elif [ -d "/opt/glpi" ] && [ -d "$GLPI_TMP" ]; then
+    rm -rf "$GLPI_TMP"
+    mv /opt/glpi "$GLPI_TMP"
+fi
 ok "Đã giải nén GLPI $GitGLPIversion."
 
 # ============================================================
