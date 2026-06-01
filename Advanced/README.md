@@ -90,9 +90,10 @@ Bản 11.0.7 vá **13 lỗ hổng bảo mật** quan trọng:
 
 ```
 Advanced/
-├── deploy_itsm_v10017.sh    # Script deploy GLPI 10.0.17 (legacy)
-├── deploy_itsm_v11007.sh    # Script deploy GLPI 11.0.7 (mới nhất)
-└── README.md                # Tài liệu hướng dẫn (file này)
+├── deploy_itsm_v10017.sh              # Script deploy GLPI 10.0.17 (legacy)
+├── deploy_itsm_v11007.sh              # Script deploy GLPI 11.0.7 (cài mới)
+├── upgrade_itsm_v10017-to-v11007.sh   # Script nâng cấp từ 10.0.17 → 11.0.7
+└── README.md                          # Tài liệu hướng dẫn (file này)
 ```
 
 ## Hướng dẫn sử dụng
@@ -132,6 +133,198 @@ Script sẽ tự động:
 5. Cài đặt phpMyAdmin
 6. Cài đặt Certbot SSL Let's Encrypt
 7. Cấu hình firewall (UFW)
+
+## Nâng cấp từ GLPI 10.0.17 lên 11.0.7
+
+> **⚠️ Cảnh báo quan trọng:**
+> Nâng cấp major version (10.x → 11.x) là quy trình một chiều (irreversible).
+> Không thể rollback database sau khi nâng cấp schema. Bắt buộc phải backup trước khi thực hiện.
+
+### Quy trình nâng cấp tổng quan
+
+```
+1. Kiểm tra tiên quyết hệ thống
+2. Backup database + mã nguồn
+3. Bật chế độ bảo trì (Maintenance Mode)
+4. Tải GLPI 11.0.7
+5. Thay thế core files, giữ lại config / plugins / marketplace
+6. Chạy database migration
+7. Tắt chế độ bảo trì
+8. Kiểm tra kết quả
+```
+
+### Yêu cầu tiên quyết trước nâng cấp
+
+| Thành phần | Giá trị hiện tại (10.0.17) | Yêu cầu cho 11.0.7 | Hành động cần làm |
+|-----------|---------------------------|-------------------|-------------------|
+| **PHP** | ≥ 7.4 | **≥ 8.2** (khuyến nghị 8.3) | `add-apt-repository ppa:ondrej/php -y && apt install php8.3-fpm php8.3-cli php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip}` |
+| **PHP modules** | thiếu bcmath, bz2, dom, simplexml... | bcmath, bz2, curl, dom, fileinfo, gd, intl, json, ldap, mbstring, mysqli, openssl, session, simplexml, xml, xmlreader, xmlwriter, zip | Cài bổ sung: `apt install php8.3-bcmath php8.3-bz2` |
+| **MariaDB** | ≥ 10.2 | **≥ 10.6** | `mariadb --version` → nếu < 10.6, cần nâng cấp MariaDB trước |
+| **MySQL** | ≥ 5.7 | **≥ 8.0** | `mysql --version` → nếu < 8.0, cần nâng cấp MySQL trước |
+| **OS** | Ubuntu 20.04+ | **Ubuntu 22.04+** | `lsb_release -a` → nếu 20.04 vẫn dùng được, nhưng khuyến nghị 22.04+ |
+| **Disk** | ≥ 10GB | **≥ 20GB** | `df -h` kiểm tra dung lượng trống |
+
+### Sử dụng script nâng cấp tự động
+
+```bash
+# Clone repository (nếu chưa có)
+git clone https://github.com/PhDLeToanThang/itil-helpdesk.git
+cd itil-helpdesk/Advanced
+
+# Phân quyền thực thi
+chmod +x upgrade_itsm_v10017-to-v11007.sh
+
+# Chạy script (với quyền root)
+sudo ./upgrade_itsm_v10017-to-v11007.sh
+```
+
+Script nâng cấp sẽ tự động:
+
+1. **Kiểm tra tiên quyết** — PHP version, PHP modules, MariaDB/MySQL version
+2. **Backup toàn bộ** — Database (`mysqldump --single-transaction`), source code, plugins, marketplace → `/opt/glpi-backup-YYYYMMDD_HHMMSS/`
+3. **Bật chế độ bảo trì** — tạo file `config/maintenance.php`
+4. **Thay thế core GLPI** — giữ nguyên `config/`, `files/`, `plugins/`, `marketplace/`
+5. **Fix permissions** — www-data sở hữu toàn bộ thư mục
+6. **Nâng cấp database** — `php bin/console glpi:database:update --force`
+7. **Tắt maintenance** — xóa file maintenance
+8. **Restart services** — nginx, php-fpm, mariadb
+
+### Hướng dẫn nâng cấp thủ công (từng bước)
+
+Nếu không sử dụng script tự động, thực hiện các bước sau:
+
+#### Bước 1: Backup database
+
+```bash
+# Backup database
+mysqldump -u<user> -p<password> --single-transaction --routines --events --triggers <dbname> | gzip > /opt/glpi-backup/glpi-db-$(date +%Y%m%d).sql.gz
+
+# Backup source code
+tar czf /opt/glpi-backup/glpi-source-$(date +%Y%m%d).tar.gz \
+  -C /var/www/html <thumuc-glpi> \
+  --exclude="*/files/_dumps" \
+  --exclude="*/files/_cache" \
+  --exclude="*/files/_log" \
+  --exclude="*/files/_sessions"
+
+# Backup plugins riêng
+tar czf /opt/glpi-backup/glpi-plugins-$(date +%Y%m%d).tar.gz \
+  -C /var/www/html/<thumuc-glpi> plugins/
+```
+
+#### Bước 2: Bật chế độ bảo trì
+
+```bash
+# Tạo file maintenance để chặn người dùng truy cập
+echo "<?php return true;" > /var/www/html/<thumuc-glpi>/config/maintenance.php
+```
+
+#### Bước 3: Tải và thay thế core GLPI
+
+```bash
+cd /opt
+wget https://github.com/glpi-project/glpi/releases/download/11.0.7/glpi-11.0.7.tgz
+tar xvf glpi-11.0.7.tgz
+
+cd /var/www/html/<thumuc-glpi>
+
+# Backup các thư mục cần giữ lại
+mkdir -p /tmp/glpi-keep
+cp -a config files plugins marketplace /tmp/glpi-keep/
+
+# Xóa core cũ (giữ lại thư mục cần thiết)
+find . -mindepth 1 -maxdepth 1 \
+  ! -name 'files' ! -name 'config' \
+  ! -name 'plugins' ! -name 'marketplace' \
+  -exec rm -rf {} +
+
+# Copy core mới vào
+cp -a /opt/glpi-11.0.7/* /var/www/html/<thumuc-glpi>/
+
+# Khôi phục config, plugins, files, marketplace
+rm -rf config files plugins marketplace
+cp -a /tmp/glpi-keep/* /var/www/html/<thumuc-glpi>/
+rm -rf /tmp/glpi-keep
+```
+
+#### Bước 4: Fix permissions
+
+```bash
+chown -R www-data:www-data /var/www/html/<thumuc-glpi>/
+find /var/www/html/<thumuc-glpi>/ -type d -exec chmod 755 {} \;
+find /var/www/html/<thumuc-glpi>/ -type f -exec chmod 644 {} \;
+```
+
+#### Bước 5: Nâng cấp database schema
+
+```bash
+cd /var/www/html/<thumuc-glpi>
+php bin/console glpi:database:update --force
+# Hoặc nếu gặp lỗi:
+php bin/console glpi:migration:build --force
+
+# Nâng cấp plugins
+php bin/console glpi:plugin:list
+php bin/console glpi:plugin:install --all --force
+
+# Clear cache
+php bin/console cache:clear
+
+# Kiểm tra kết quả
+php bin/console glpi:system:check_requirements
+```
+
+#### Bước 6: Tắt chế độ bảo trì
+
+```bash
+rm -f /var/www/html/<thumuc-glpi>/config/maintenance.php
+systemctl restart nginx php8.3-fpm mariadb
+```
+
+### Xử lý sự cố sau nâng cấp
+
+| Vấn đề | Nguyên nhân | Giải pháp |
+|--------|-------------|-----------|
+| Trang trắng (white screen) | Thiếu PHP module | `php -m` → cài module thiếu: `apt install php8.3-<module>` |
+| Lỗi database connection | config_db.php sai | Kiểm tra `config/config_db.php`, restore từ backup nếu cần |
+| Plugin không hoạt động | Chưa nâng cấp plugin schema | `php bin/console glpi:plugin:install <plugin>` |
+| Lỗi 500 Internal Server | Permissions sai | `chown -R www-data:www-data` toàn bộ thư mục GLPI |
+| Lỗi "GLPI is installed" | Cache cũ | `rm -rf files/_cache/*` và `php bin/console cache:clear` |
+
+### Rollback — Khôi phục từ backup nếu thất bại
+
+```bash
+# 1. Khôi phục database
+gunzip -c /opt/glpi-backup/glpi-db-YYYYMMDD.sql.gz | mysql -u<user> -p<password> <dbname>
+
+# 2. Khôi phục source code
+tar xzf /opt/glpi-backup/glpi-source-YYYYMMDD.tar.gz -C /
+
+# 3. Khôi phục plugins
+tar xzf /opt/glpi-backup/glpi-plugins-YYYYMMDD.tar.gz -C /var/www/html/<thumuc-glpi>/
+
+# 4. Fix permissions
+chown -R www-data:www-data /var/www/html/<thumuc-glpi>/
+
+# 5. Restart services
+systemctl restart nginx php8.3-fpm mariadb
+```
+
+### Kiểm tra sau nâng cấp
+
+```bash
+# Kiểm tra version
+php bin/console glpi:system:status | grep version
+
+# Kiểm tra requirements
+php bin/console glpi:system:check_requirements
+
+# Kiểm tra database
+php bin/console glpi:database:check_schema_integrity
+
+# Kiểm tra log lỗi
+tail -f files/_log/php-errors.log
+```
 
 ### Thông tin đăng nhập mặc định
 
