@@ -2,154 +2,131 @@
 # ============================================================
 # upgrade_itsm_v10017-to-v11007.sh
 # Nâng cấp GLPI từ 10.0.17 lên 11.0.7
-# Dành cho Ubuntu 22.04 LTS / 24.04 LTS
-# Ngày: 31/05/2026
+# Hỗ trợ: Ubuntu 20.04 / 22.04 / 24.04 LTS
+# Ngày: 01/06/2026
 # ============================================================
-#
-# Các bước thực hiện:
-#   1. Kiểm tra tiên quyết (PHP, MariaDB/MySQL)
-#   2. Backup toàn bộ (database + file)
-#   3. Tải GLPI 11.0.7
-#   4. Thay thế core GLPI, giữ lại config + plugins + marketplace
-#   5. Nâng cấp database schema
-#   6. Fix permissions
-#   7. Dọn dẹp
-# ============================================================
+set -eo pipefail
 
-set -euo pipefail
-
-# ---------- Màu sắc cho output ----------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-
+# ---------- Màu ----------
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; NC='\033[0m'
 info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# ---------- Kiểm tra quyền root ----------
+# ---------- Root check ----------
 if [ "$(id -u)" -ne 0 ]; then
-    err "Script này cần chạy với quyền root (sudo)."
+    err "Cần quyền root (sudo)."
     exit 1
 fi
 
-# ---------- Thông báo ----------
+# ---------- Input ----------
 cat << "EOF"
 ╔══════════════════════════════════════════════════════════╗
 ║  NÂNG CẤP GLPI 10.0.17 → 11.0.7                        ║
-║  Đọc kỹ hướng dẫn trước khi thực hiện.                  ║
-║  Yêu cầu: Ubuntu 22.04+ | PHP 8.2+ | MariaDB 10.6+     ║
+║  Yêu cầu: PHP ≥ 8.2 | MariaDB ≥ 10.6 / MySQL ≥ 8.0     ║
 ╚══════════════════════════════════════════════════════════╝
 EOF
-echo ""
 
-# ---------- Nhập thông tin từ người dùng ----------
-read -p "Đường dẫn thư mục GLPI hiện tại (VD: /var/www/html/demo.company.vn): " GLPI_ROOT
+read -p "Đường dẫn GLPI (VD: /var/www/html/itsm.atcom.vn): " GLPI_ROOT
 GLPI_ROOT="${GLPI_ROOT:-/var/www/html/glpi}"
+[ ! -d "$GLPI_ROOT" ] && { err "Không tìm thấy $GLPI_ROOT"; exit 1; }
 
-if [ ! -d "$GLPI_ROOT" ]; then
-    err "Thư mục $GLPI_ROOT không tồn tại!"
-    exit 1
-fi
-
-read -p "Tên database GLPI (VD: itildata): " dbname
-read -p "User database (VD: userdata): " dbuser
-read -sp "Password database: " dbpass
-echo ""
-read -p "Database host [localhost]: " dbhost
-dbhost="${dbhost:-localhost}"
+read -p "DB name (VD: itsimdata1009): " dbname
+read -p "DB user (VD: useritsmcloud): " dbuser
+read -sp "DB password: " dbpass; echo ""
+read -p "DB host [localhost]: " dbhost; dbhost="${dbhost:-localhost}"
 
 BACKUP_DIR="/opt/glpi-backup-$(date +%Y%m%d_%H%M%S)"
 GitGLPIversion="11.0.7"
 GLPI_TMP="/opt/glpi-${GitGLPIversion}"
 
 echo ""
-echo "========== THÔNG TIN CẤU HÌNH =========="
-echo "GLPI root:     $GLPI_ROOT"
-echo "Database:      $dbname"
-echo "DB user:       $dbuser"
-echo "DB host:       $dbhost"
-echo "Backup dir:    $BACKUP_DIR"
-echo "GLPI version:  $GitGLPIversion"
-echo "========================================="
-echo ""
+echo "========== THÔNG TIN =========="
+echo "GLPI root:    $GLPI_ROOT"
+echo "Database:     $dbname @ $dbhost"
+echo "Backup dir:   $BACKUP_DIR"
+echo "================================"
+read -p "Tiếp tục? (y/N): " confirm
+[ "$confirm" != "y" ] && [ "$confirm" != "Y" ] && { info "Hủy."; exit 0; }
 
-read -p "Tiếp tục nâng cấp? (y/N): " confirm
-if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    info "Hủy nâng cấp."
-    exit 0
+# ============================================================
+# Bước 1: Kiểm tra & sửa PHP (KHÔNG xoá gói cũ)
+# ============================================================
+echo ""
+info "Bước 1/7: Kiểm tra PHP & Database..."
+
+# --- Kiểm tra PHP có chạy không ---
+PHP_BIN=""
+for p in php8.3 php8.2 php8.1 php8.0 php; do
+    if command -v "$p" &>/dev/null; then
+        PHP_BIN="$p"
+        break
+    fi
+done
+
+PHP_VER="0"
+PHP_MAJOR_MINOR="0"
+if [ -n "$PHP_BIN" ]; then
+    PHP_VER=$("$PHP_BIN" -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "0")
+    PHP_MAJOR_MINOR="$PHP_VER"
 fi
 
-# ============================================================
-# Bước 1: Kiểm tra tiên quyết
-# ============================================================
-echo ""
-info "Bước 1/7: Kiểm tra tiên quyết..."
+info "PHP binary: ${PHP_BIN:-không tìm thấy}, version: $PHP_VER"
 
-# PHP version
-PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "0")
-PHP_MAJOR_MINOR=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "0")
-
-# Luôn đảm bảo PPA ondrej/php đã được thêm (cần cho các gói PHP modules)
+# --- Đảm bảo PPA ondrej/php ---
 if ! apt-cache policy | grep -q "ondrej/php"; then
     info "Thêm PPA ondrej/php..."
     add-apt-repository ppa:ondrej/php -y
-    apt update -y
-else
-    apt update -y 2>/dev/null || true
+fi
+apt update -y 2>/dev/null || true
+
+# --- Nếu PHP < 8.2 hoặc không có, thử cài php8.3 NHƯNG không xoá gì cũ ---
+PHP_NEEDS_INSTALL=false
+if [ "$(printf '%s\n' "8.2" "$PHP_VER" | sort -V | head -n1)" != "8.2" ]; then
+    PHP_NEEDS_INSTALL=true
+    warn "PHP $PHP_VER chưa đạt yêu cầu (cần ≥ 8.2)."
+    info "Đang thử cài PHP 8.3 (giữ nguyên các bản cũ)..."
+    
+    PHP83_AVAILABLE=false
+    apt-cache show php8.3-fpm &>/dev/null && PHP83_AVAILABLE=true
+    
+    if [ "$PHP83_AVAILABLE" = true ]; then
+        DEBIAN_FRONTEND=noninteractive apt install -y php8.3-fpm php8.3-cli php8.3-common php8.3-curl php8.3-gd php8.3-intl php8.3-mbstring php8.3-mysql php8.3-xml php8.3-zip php8.3-bz2 php8.3-bcmath php8.3-ldap php8.3-soap php8.3-xmlrpc php8.3-opcache
+        update-alternatives --set php /usr/bin/php8.3 2>/dev/null || true
+        systemctl enable php8.3-fpm 2>/dev/null || true
+        PHP_BIN="php8.3"
+        PHP_VER="8.3"
+        PHP_MAJOR_MINOR="8.3"
+        ok "Đã cài PHP 8.3."
+    else
+        err "Gói php8.3-fpm không có trong PPA cho Ubuntu $(lsb_release -cs 2>/dev/null || echo 'n/a')."
+        err "GLPI 11.0 yêu cầu PHP ≥ 8.2."
+        err ""
+        err "Giải pháp 1: Nâng cấp Ubuntu lên 22.04 LTS (khuyến nghị)"
+        err "  sudo do-release-upgrade"
+        err ""
+        err "Giải pháp 2: Cài PHP 8.3 từ nguồn khác (không chính thức)"
+        err "  Tham khảo: https://github.com/phpleague/docker-php"
+        err ""
+        err "Giải pháp 3: Quay lại GLPI 10.0.x với PHP hiện tại"
+        err "  php bin/console glpi:database:update (cho 10.0.x)"
+        exit 1
+    fi
 fi
 
-if [ "$(printf '%s\n' "8.2" "$PHP_VERSION" | sort -V | head -n1)" = "8.2" ]; then
-    ok "PHP $PHP_VERSION đạt yêu cầu (≥ 8.2)."
-else
-    warn "PHP hiện tại: $PHP_VERSION. Cần nâng cấp lên PHP 8.2+."
-    info "Đang nâng cấp PHP lên 8.3..."
-
-    apt install -y php8.3-fpm php8.3-cli php8.3-common php8.3-curl \
-        php8.3-gd php8.3-intl php8.3-mbstring php8.3-mysql php8.3-xml \
-        php8.3-zip php8.3-bz2 php8.3-bcmath php8.3-ldap php8.3-soap \
-        php8.3-xmlrpc php8.3-opcache
-
-    # Disable old PHP version, enable new
-    update-alternatives --set php /usr/bin/php8.3 2>/dev/null || true
-    systemctl enable php8.3-fpm || true
-
-    PHP_VERSION="8.3"
-    PHP_MAJOR_MINOR="8.3"
-    ok "Đã nâng cấp PHP lên $PHP_VERSION."
-fi
-
-# Sửa lỗi extension name sai trong php.ini cũ (10.0.17 ghi "php-ldap.so" / "php_ldap.so")
+# --- Sửa extension name ldap trong php.ini cũ ---
 for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/fpm/php.ini; do
-    if [ -f "$ini" ]; then
-        sed -i 's/extension\s*=\s*php-ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
-        sed -i 's/extension\s*=\s*php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
-    fi
+    [ -f "$ini" ] && sed -i 's/extension\s*=\s*php-ldap\.so/extension=ldap.so/g; s/extension\s*=\s*php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
 done
 
-# Xóa các extension= đã compiled-in trong PHP 8.3 để tránh warning "already loaded"
-# Các module này là built-in trong PHP 8.3, không cần extension= line
-PHP_BUILTIN=("bz2" "curl" "fileinfo" "intl" "mbstring" "openssl" "session" "tokenizer" "xml" "ctype" "dom" "json" "simplexml" "sodium" "sqlite3" "xmlreader" "xmlwriter" "zlib")
-for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/fpm/php.ini; do
-    if [ -f "$ini" ]; then
-        for mod in "${PHP_BUILTIN[@]}"; do
-            sed -i "/^extension\s*=\s*${mod}/d" "$ini" 2>/dev/null || true
-            sed -i "/^extension\s*=\s*php-${mod}/d" "$ini" 2>/dev/null || true
-        done
-    fi
-done
-
-# Kiểm tra PHP modules bắt buộc cho GLPI 11.0
-PHP_MODULES=("bcmath" "bz2" "curl" "dom" "fileinfo" "gd" "intl" "json" "ldap" "mbstring" "mysqli" "openssl" "session" "simplexml" "xml" "xmlreader" "xmlwriter" "zip")
-
-# Lấy danh sách module từ php -m (chỉ lấy 1 lần, tránh flood stderr)
-PHP_MOD_LIST=$(php -m 2>/dev/null || true)
-
+# --- Cài các PHP modules còn thiếu (KHÔNG xoá gì cũ) ---
+PHP_MODULES_REQUIRED=("bcmath" "bz2" "curl" "gd" "intl" "ldap" "mbstring" "mysqli" "xml" "zip")
+PHP_MOD_LIST=$("$PHP_BIN" -m 2>/dev/null || true)
 MISSING=()
-for mod in "${PHP_MODULES[@]}"; do
+
+for mod in "${PHP_MODULES_REQUIRED[@]}"; do
     if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
         MISSING+=("$mod")
     fi
@@ -157,486 +134,277 @@ done
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     warn "Thiếu PHP modules: ${MISSING[*]}"
-    PHP_REQUIRED_VER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" 2>/dev/null || echo "8.3")
-    info "PHP version hiện tại: $PHP_REQUIRED_VER"
-    
-    # --- Xoá sạch PHP cũ để tránh conflict ---
-    for old_ver in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1; do
-        if dpkg -l "php${old_ver}*" 2>/dev/null | grep -q "^ii"; then
-            info "Gỡ PHP ${old_ver} cũ..."
-            DEBIAN_FRONTEND=noninteractive apt remove --purge -y $(dpkg -l "php${old_ver}*" 2>/dev/null | grep "^ii" | awk '{print $2}') 2>/dev/null || true
-        fi
-    done
-    # Gỡ meta-package php-bcmath, php-gd etc. (chúng trỏ vào PHP mặc định cũ)
-    for meta in php-bcmath php-gd php-ldap php-mysql php-curl php-mbstring php-xml php-zip php-bz2 php-intl php-soap php-xmlrpc; do
-        DEBIAN_FRONTEND=noninteractive apt remove --purge -y "$meta" 2>/dev/null || true
-    done
-    DEBIAN_FRONTEND=noninteractive apt autoremove --purge -y 2>/dev/null || true
-    apt update -y 2>/dev/null || true
-
-    # --- Cài lại toàn bộ PHP 8.3 + modules trong 1 lần ---
-    info "Cài lại toàn bộ PHP $PHP_REQUIRED_VER và modules..."
-    PHP_PKGS=(
-        php${PHP_REQUIRED_VER}-fpm
-        php${PHP_REQUIRED_VER}-cli
-        php${PHP_REQUIRED_VER}-common
-        php${PHP_REQUIRED_VER}-curl
-        php${PHP_REQUIRED_VER}-gd
-        php${PHP_REQUIRED_VER}-intl
-        php${PHP_REQUIRED_VER}-ldap
-        php${PHP_REQUIRED_VER}-mbstring
-        php${PHP_REQUIRED_VER}-mysql
-        php${PHP_REQUIRED_VER}-xml
-        php${PHP_REQUIRED_VER}-zip
-        php${PHP_REQUIRED_VER}-bz2
-        php${PHP_REQUIRED_VER}-bcmath
-        php${PHP_REQUIRED_VER}-soap
-        php${PHP_REQUIRED_VER}-xmlrpc
-        php${PHP_REQUIRED_VER}-opcache
-        php-ldap
-    )
-    # Cài tuần tự, hiển thị lỗi từng gói
-    for pkg in "${PHP_PKGS[@]}"; do
-        if DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1; then
-            ok "$pkg OK"
-        else
-            warn "Cài $pkg thất bại (bỏ qua)"
-        fi
-    done
-
-    # Kích hoạt modules bằng nhiều cách
-    if command -v phpenmod &>/dev/null; then
-        phpenmod -v "$PHP_REQUIRED_VER" bcmath gd ldap curl mbstring mysqli xml zip bz2 intl soap 2>/dev/null || true
-    fi
-    # Tạo symlink trực tiếp nếu phpenmod không hoạt động
-    PHP_MODS_DIR="/etc/php/${PHP_REQUIRED_VER}/mods-available"
-    PHP_CLI_DIR="/etc/php/${PHP_REQUIRED_VER}/cli/conf.d"
-    PHP_FPM_DIR="/etc/php/${PHP_REQUIRED_VER}/fpm/conf.d"
-    for mod in bcmath gd ldap; do
-        if [ -f "${PHP_MODS_DIR}/${mod}.ini" ]; then
-            [ ! -L "${PHP_CLI_DIR}/20-${mod}.ini" ] && ln -sf "${PHP_MODS_DIR}/${mod}.ini" "${PHP_CLI_DIR}/20-${mod}.ini" 2>/dev/null || true
-            [ ! -L "${PHP_FPM_DIR}/20-${mod}.ini" ] && ln -sf "${PHP_MODS_DIR}/${mod}.ini" "${PHP_FPM_DIR}/20-${mod}.ini" 2>/dev/null || true
-        fi
-    done
-
-    # Kiểm tra lại sau khi cài — dùng cả php -m lẫn PHP function test
-    sleep 1
-    PHP_MOD_LIST=$(php -m 2>/dev/null || true)
-    BCMATH_FUNC=$(php -r 'echo function_exists("bcadd") ? 1 : 0;' 2>/dev/null || echo "0")
-    
-    MISSING_AFTER=()
-    for mod in "${PHP_MODULES[@]}"; do
+    info "Đang cài bổ sung (giữ nguyên các gói cũ)..."
+    for mod in "${MISSING[@]}"; do
         case "$mod" in
-            dom|fileinfo|json|session|simplexml|xmlreader|xmlwriter)
-                continue ;;
-            bcmath)
-                # Kiểm tra bcmath cả bằng php -m lẫn function_exists
-                if echo "$PHP_MOD_LIST" | grep -qi "^bcmath$" || [ "$BCMATH_FUNC" = "1" ]; then
-                    continue
-                fi
-                MISSING_AFTER+=("$mod")
-                ;;
-            *)
-                if ! echo "$PHP_MOD_LIST" | grep -qi "^${mod}$"; then
-                    MISSING_AFTER+=("$mod")
-                fi
-                ;;
+            bcmath) pkg="php${PHP_MAJOR_MINOR}-bcmath" ;;
+            mysqli) pkg="php${PHP_MAJOR_MINOR}-mysql" ;;
+            ldap)   pkg="php${PHP_MAJOR_MINOR}-ldap" ;;
+            gd)     pkg="php${PHP_MAJOR_MINOR}-gd" ;;
+            *)      pkg="php${PHP_MAJOR_MINOR}-${mod}" ;;
         esac
+        DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1 | tail -3 || {
+            warn "Không cài được $pkg. Thử php-${mod}..."
+            DEBIAN_FRONTEND=noninteractive apt install -y "php-${mod}" 2>&1 | tail -3 || true
+        }
     done
-
-    if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
-        warn "Vẫn còn thiếu modules: ${MISSING_AFTER[*]}"
-        echo ""
-        echo "========== HƯỚNG DẪN SỬA LỖI =========="
-        echo ""
-
-        # Thử tìm bcmath.so trên toàn bộ hệ thống
-        BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
-        if [ -n "$BCMATH_SO" ]; then
-            echo "Tìm thấy bcmath.so tại: $BCMATH_SO"
-            echo "Đang thử kích hoạt thủ công..."
-            echo "extension=$BCMATH_SO" > /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini 2>/dev/null || true
-            ln -sf /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini /etc/php/${PHP_REQUIRED_VER}/cli/conf.d/20-bcmath.ini 2>/dev/null || true
-            ln -sf /etc/php/${PHP_REQUIRED_VER}/mods-available/bcmath.ini /etc/php/${PHP_REQUIRED_VER}/fpm/conf.d/20-bcmath.ini 2>/dev/null || true
-            PHP_MOD_LIST=$(php -m 2>/dev/null || true)
-            if echo "$PHP_MOD_LIST" | grep -qi "^bcmath$" || [ "$(php -r 'echo function_exists("bcadd") ? 1 : 0;' 2>/dev/null)" = "1" ]; then
-                ok "Đã kích hoạt bcmath thủ công!"
-                # Xoá khỏi danh sách lỗi
-                MISSING_AFTER=(${MISSING_AFTER[@]/bcmath/})
-            fi
-        fi
-
-        if [ ${#MISSING_AFTER[@]} -gt 0 ]; then
-            echo "Module 'bcmath' rất quan trọng cho GLPI 11.0."
-            echo "Có thể thử tải .deb trực tiếp từ PPA:"
-            echo "  cd /tmp"
-            echo "  wget -r -l1 --no-parent -A 'php8.3-bcmath*.deb' http://ppa.launchpad.net/ondrej/php/ubuntu/pool/main/p/php8.3/"
-            echo "  sudo dpkg -i php8.3-bcmath*.deb"
-            echo ""
-            echo "Hoặc biên dịch từ source:"
-            echo "  sudo apt install php8.3-dev"
-            echo "  cd /tmp && phpize8.3 && wget https://raw.githubusercontent.com/php/php-src/PHP-8.3/ext/bcmath/config.m4"
-            echo ""
-            echo "Danh sách gói PHP ${PHP_REQUIRED_VER} có sẵn:"
-            apt list --all-versions "php${PHP_REQUIRED_VER}*" 2>/dev/null | grep -v "Listing..." || echo "(không có gói nào)"
-        fi
-        echo "========================================"
-    else
-        ok "Tất cả PHP modules đã sẵn sàng."
-    fi
 else
     ok "Tất cả PHP modules đã sẵn sàng."
 fi
 
-# Restart PHP-FPM để áp dụng thay đổi
+# --- Kiểm tra bcmath bằng function_exists (quan trọng) ---
+BCMATH_OK=false
+if "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1; then
+    BCMATH_OK=true
+    ok "bcmath hoạt động."
+fi
+
+if [ "$BCMATH_OK" = false ]; then
+    warn "bcmath chưa khả dụng. Thử tìm thủ công..."
+    BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
+    if [ -n "$BCMATH_SO" ]; then
+        MODS_DIR="/etc/php/${PHP_MAJOR_MINOR}/mods-available"
+        mkdir -p "$MODS_DIR"
+        echo "extension=$BCMATH_SO" > "$MODS_DIR/bcmath.ini"
+        ln -sf "$MODS_DIR/bcmath.ini" "/etc/php/${PHP_MAJOR_MINOR}/cli/conf.d/20-bcmath.ini" 2>/dev/null || true
+        ln -sf "$MODS_DIR/bcmath.ini" "/etc/php/${PHP_MAJOR_MINOR}/fpm/conf.d/20-bcmath.ini" 2>/dev/null || true
+        if "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1; then
+            BCMATH_OK=true; ok "bcmath đã kích hoạt thủ công từ $BCMATH_SO"
+        fi
+    fi
+fi
+
+if [ "$BCMATH_OK" = false ]; then
+    warn "bcmath vẫn chưa khả dụng. Thử tải .deb trực tiếp từ PPA..."
+    cd /tmp
+    wget -q -r -l1 --no-parent -A "php${PHP_MAJOR_MINOR}-bcmath_*_amd64.deb" "http://ppa.launchpad.net/ondrej/php/ubuntu/pool/main/p/php${PHP_MAJOR_MINOR}/" 2>/dev/null || true
+    DEB_FILE=$(find /tmp -name "php${PHP_MAJOR_MINOR}-bcmath_*_amd64.deb" 2>/dev/null | head -1)
+    if [ -n "$DEB_FILE" ]; then
+        dpkg -i "$DEB_FILE" 2>/dev/null || {
+            DEBIAN_FRONTEND=noninteractive apt install -f -y 2>/dev/null || true
+            dpkg -i "$DEB_FILE" 2>/dev/null || true
+        }
+        phpenmod -v "$PHP_MAJOR_MINOR" bcmath 2>/dev/null || true
+        "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1 && { BCMATH_OK=true; ok "bcmath cài từ .deb thành công!"; }
+    fi
+fi
+
+# --- Restart PHP-FPM ---
 systemctl restart "php${PHP_MAJOR_MINOR}-fpm" 2>/dev/null || true
 
-# MariaDB / MySQL version
+# --- Database check ---
 DB_VERSION=$(mysql --version 2>/dev/null || echo "")
 if echo "$DB_VERSION" | grep -qi "mariadb"; then
-    # Trích xuất MariaDB version (dùng awk thay grep -oP để tương thích tốt hơn)
     MARIADB_VER=$(mysql --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
-    if [ -z "$MARIADB_VER" ] || [ "$MARIADB_VER" = "0" ]; then
-        mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}'
-        MARIADB_VER=$(mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
-    fi
+    [ "$MARIADB_VER" = "0" ] && MARIADB_VER=$(mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
     if [ "$(printf '%s\n' "10.6" "$MARIADB_VER" | sort -V | head -n1)" = "10.6" ]; then
-        ok "MariaDB $MARIADB_VER đạt yêu cầu (≥ 10.6)."
+        ok "MariaDB $MARIADB_VER OK."
     else
-        err "MariaDB $MARIADB_VER quá cũ. Cần ≥ 10.6. Hãy nâng cấp MariaDB trước."
-        err "Lệnh nâng cấp: sudo apt install mariadb-server-10.6 mariadb-client-10.6"
-        err "Hoặc: sudo apt install mariadb-server mariadb-client (nếu repo có sẵn)"
+        err "MariaDB $MARIADB_VER < 10.6. Cần nâng cấp MariaDB."
         exit 1
     fi
 elif echo "$DB_VERSION" | grep -qi "mysql"; then
     MYSQL_VER=$(mysql --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
     if [ "$(printf '%s\n' "8.0" "$MYSQL_VER" | sort -V | head -n1)" = "8.0" ]; then
-        ok "MySQL $MYSQL_VER đạt yêu cầu (≥ 8.0)."
+        ok "MySQL $MYSQL_VER OK."
     else
-        err "MySQL $MYSQL_VER quá cũ. Cần ≥ 8.0. Hãy nâng cấp MySQL trước."
+        err "MySQL $MYSQL_VER < 8.0."
         exit 1
     fi
 else
-    # Thử lệnh mariadb nếu mysql không có
-    if command -v mariadb &>/dev/null; then
-        DB_VERSION=$(mariadb --version 2>/dev/null || echo "")
-        MARIADB_VER=$(mariadb --version 2>/dev/null | awk '{for(i=1;i<=NF;i++){if(match($i,/[0-9]+\.[0-9]+/)){print substr($i,RSTART,RLENGTH); exit}}}' || echo "0")
-        if [ "$(printf '%s\n' "10.6" "$MARIADB_VER" | sort -V | head -n1)" = "10.6" ]; then
-            ok "MariaDB $MARIADB_VER đạt yêu cầu (≥ 10.6)."
-        else
-            err "MariaDB $MARIADB_VER quá cũ. Cần ≥ 10.6."
-            exit 1
-        fi
-    else
-        err "Không tìm thấy MariaDB/MySQL. Vui lòng kiểm tra database."
-        err "Cài đặt: sudo apt install mariadb-server mariadb-client -y"
-        exit 1
-    fi
-fi
-
-# ============================================================
-# Bước 2: Backup toàn bộ
-# ============================================================
-echo ""
-info "Bước 2/7: Backup toàn bộ dữ liệu..."
-
-mkdir -p "$BACKUP_DIR"
-ok "Thư mục backup: $BACKUP_DIR"
-
-# Backup database
-info "Đang backup database..."
-MYSQL_CMD="mysql -u${dbuser} -p${dbpass} -h${dbhost}"
-MYSQLDUMP_CMD="mysqldump -u${dbuser} -p${dbpass} -h${dbhost} --single-transaction --routines --events --triggers"
-
-if $MYSQL_CMD -e "USE ${dbname};" 2>/dev/null; then
-    $MYSQLDUMP_CMD "$dbname" | gzip > "$BACKUP_DIR/database-${dbname}.sql.gz"
-    ok "Database $dbname đã được backup."
-else
-    err "Không thể kết nối database $dbname. Kiểm tra lại thông tin đăng nhập."
+    err "Không tìm thấy MariaDB/MySQL."
     exit 1
 fi
 
-# Backup source code
-info "Đang backup source code..."
-tar czf "$BACKUP_DIR/glpi-source.tar.gz" -C "$(dirname $GLPI_ROOT)" "$(basename $GLPI_ROOT)" \
-    --exclude="*/files/_dumps" \
-    --exclude="*/files/_cache" \
-    --exclude="*/files/_log" \
-    --exclude="*/files/_sessions" \
-    --exclude="*/files/_tmp" 2>/dev/null || \
-    warn "Không thể backup source code (có thể thiếu quyền). Backups lấy file thủ công."
+# ============================================================
+# Bước 2: Backup
+# ============================================================
+echo ""; info "Bước 2/7: Backup..."
+mkdir -p "$BACKUP_DIR"
 
-# Backup config file riêng
-if [ -f "$GLPI_ROOT/config/config_db.php" ]; then
-    cp "$GLPI_ROOT/config/config_db.php" "$BACKUP_DIR/config_db.php.bak"
-    ok "Đã backup config database."
-fi
+MYSQL_CMD="mysql -u${dbuser} -p${dbpass} -h${dbhost}"
+MYSQLDUMP_CMD="mysqldump -u${dbuser} -p${dbpass} -h${dbhost} --single-transaction --routines --events --triggers"
 
-# Backup plugins + marketplace
-if [ -d "$GLPI_ROOT/plugins" ]; then
-    tar czf "$BACKUP_DIR/glpi-plugins.tar.gz" -C "$GLPI_ROOT" plugins/
-    ok "Đã backup plugins."
-fi
+$MYSQL_CMD -e "USE ${dbname};" 2>/dev/null || { err "Không kết nối được DB $dbname."; exit 1; }
+$MYSQLDUMP_CMD "$dbname" | gzip > "$BACKUP_DIR/database-${dbname}.sql.gz" && ok "DB backed up."
 
-if [ -d "$GLPI_ROOT/marketplace" ]; then
-    tar czf "$BACKUP_DIR/glpi-marketplace.tar.gz" -C "$GLPI_ROOT" marketplace/
-    ok "Đã backup marketplace."
-fi
-
-# Cấu hình GLPI 10.0.17 — lưu các thông tin cần thiết
-GLPI_CONFIG_PHP="$GLPI_ROOT/inc/config.php"  # 10.0.x
-GLPI_CONFIG_DB="$GLPI_ROOT/config/config_db.php"
-
-if [ -f "$GLPI_CONFIG_DB" ]; then
-    cp "$GLPI_CONFIG_DB" "$BACKUP_DIR/config_db.php.bak2"
-fi
-
+cd "$(dirname "$GLPI_ROOT")"
+tar czf "$BACKUP_DIR/glpi-source.tar.gz" "$(basename "$GLPI_ROOT")" \
+    --exclude="*/files/_dumps" --exclude="*/files/_cache" --exclude="*/files/_log" \
+    --exclude="*/files/_sessions" --exclude="*/files/_tmp" 2>/dev/null && ok "Source backed up." || warn "Source backup skipped (tiếp tục)."
+[ -d "$GLPI_ROOT/plugins" ] && tar czf "$BACKUP_DIR/glpi-plugins.tar.gz" -C "$GLPI_ROOT" plugins/ && ok "Plugins backed up."
+[ -d "$GLPI_ROOT/marketplace" ] && tar czf "$BACKUP_DIR/glpi-marketplace.tar.gz" -C "$GLPI_ROOT" marketplace/ && ok "Marketplace backed up."
+[ -f "$GLPI_ROOT/config/config_db.php" ] && cp "$GLPI_ROOT/config/config_db.php" "$BACKUP_DIR/" && ok "Config backed up."
 ok "Backup hoàn tất: $BACKUP_DIR"
 
 # ============================================================
 # Bước 3: Tải GLPI 11.0.7
 # ============================================================
-echo ""
-info "Bước 3/7: Tải GLPI $GitGLPIversion..."
-
+echo ""; info "Bước 3/7: Tải GLPI $GitGLPIversion..."
 cd /opt
-
-if [ -f "glpi-${GitGLPIversion}.tgz" ]; then
-    ok "File đã tồn tại, bỏ qua tải lại."
-else
-    wget "https://github.com/glpi-project/glpi/releases/download/${GitGLPIversion}/glpi-${GitGLPIversion}.tgz" \
-        -O "glpi-${GitGLPIversion}.tgz"
-    ok "Đã tải GLPI $GitGLPIversion."
+if [ ! -f "glpi-${GitGLPIversion}.tgz" ]; then
+    wget "https://github.com/glpi-project/glpi/releases/download/${GitGLPIversion}/glpi-${GitGLPIversion}.tgz" -O "glpi-${GitGLPIversion}.tgz"
 fi
-
-# Giải nén
-# Lưu ý: GLPI release tar xả vào thư mục glpi/ (không phải glpi-11.0.7/)
-rm -rf /opt/glpi
-tar xvf "glpi-${GitGLPIversion}.tgz" -C /opt/ > /dev/null 2>&1
-
-# Đổi tên thư mục glpi/ -> glpi-11.0.7/ để khớp GLPI_TMP
-if [ -d "/opt/glpi" ] && [ ! -d "$GLPI_TMP" ]; then
-    mv /opt/glpi "$GLPI_TMP"
-elif [ -d "/opt/glpi" ] && [ -d "$GLPI_TMP" ]; then
-    rm -rf "$GLPI_TMP"
-    mv /opt/glpi "$GLPI_TMP"
-fi
-ok "Đã giải nén GLPI $GitGLPIversion."
+rm -rf /opt/glpi /opt/glpi-${GitGLPIversion}
+tar xf "glpi-${GitGLPIversion}.tgz" -C /opt/
+mv /opt/glpi "$GLPI_TMP"
+ok "Đã tải và giải nén GLPI $GitGLPIversion."
 
 # ============================================================
-# Bước 4: Thay thế core, giữ lại config + plugins
+# Bước 4: Thay thế core GLPI (giữ config/plugins/files/marketplace)
 # ============================================================
-echo ""
-info "Bước 4/7: Cập nhật file GLPI..."
+echo ""; info "Bước 4/7: Cập nhật core GLPI..."
 
-# Đặt chế độ bảo trì (GLPI 10.0.x)
+# Maintenance mode ON (dùng cách cũ của 10.0.x)
 MAINTENANCE_FILE="$GLPI_ROOT/config/maintenance.php"
-if [ ! -f "$MAINTENANCE_FILE" ]; then
-    echo "<?php return true;" > "$MAINTENANCE_FILE"
-    ok "Đã bật chế độ bảo trì GLPI."
-fi
+echo "<?php return true;" > "$MAINTENANCE_FILE" 2>/dev/null && ok "Maintenance mode ON."
 
-# Backup các thư mục/files cần giữ lại
+# Giữ lại các thư mục quan trọng
 TMP_KEEP="/tmp/glpi-keep-$$"
 mkdir -p "$TMP_KEEP"
-
-# Các thư mục cần giữ nguyên
 for dir in config files plugins marketplace; do
-    if [ -d "$GLPI_ROOT/$dir" ]; then
-        cp -a "$GLPI_ROOT/$dir" "$TMP_KEEP/"
-        ok "Giữ lại: $dir"
-    fi
+    [ -d "$GLPI_ROOT/$dir" ] && cp -a "$GLPI_ROOT/$dir" "$TMP_KEEP/"
 done
+[ -f "$GLPI_ROOT/inc/config.php" ] && cp -a "$GLPI_ROOT/inc/config.php" "$TMP_KEEP/" 2>/dev/null || true
 
-# File .htaccess nếu có
-if [ -f "$GLPI_ROOT/.htaccess" ]; then
-    cp -a "$GLPI_ROOT/.htaccess" "$TMP_KEEP/"
-fi
-
-# File robots.txt nếu có
-if [ -f "$GLPI_ROOT/robots.txt" ]; then
-    cp -a "$GLPI_ROOT/robots.txt" "$TMP_KEEP/"
-fi
-
-# Xóa GLPI cũ (giữ lại thư mục files, config để tránh mất dữ liệu)
-info "Đang xóa GLPI cũ..."
+# Xoá core cũ (giữ lại thư mục đã backup)
 find "$GLPI_ROOT" -mindepth 1 -maxdepth 1 \
-    ! -name 'files' \
-    ! -name 'config' \
-    ! -name 'plugins' \
-    ! -name 'marketplace' \
+    ! -name 'files' ! -name 'config' ! -name 'plugins' ! -name 'marketplace' \
     -exec rm -rf {} + 2>/dev/null || true
 
-# Copy GLPI mới vào
-info "Đang copy GLPI $GitGLPIversion..."
+# Copy core mới
 cp -a "$GLPI_TMP/"* "$GLPI_ROOT/"
 
-# Khôi phục config + plugins + files + marketplace
+# Khôi phục
 for dir in config files plugins marketplace; do
-    if [ -d "$TMP_KEEP/$dir" ]; then
-        rm -rf "$GLPI_ROOT/$dir"
-        cp -a "$TMP_KEEP/$dir" "$GLPI_ROOT/"
-        ok "Đã khôi phục: $dir"
-    fi
+    [ -d "$TMP_KEEP/$dir" ] && { rm -rf "$GLPI_ROOT/$dir"; cp -a "$TMP_KEEP/$dir" "$GLPI_ROOT/"; }
 done
-
-# Khôi phục .htaccess
-if [ -f "$TMP_KEEP/.htaccess" ]; then
-    cp -a "$TMP_KEEP/.htaccess" "$GLPI_ROOT/"
-fi
-
-if [ -f "$TMP_KEEP/robots.txt" ]; then
-    cp -a "$TMP_KEEP/robots.txt" "$GLPI_ROOT/"
-fi
-
-# Dọn dẹp
+[ -f "$TMP_KEEP/config.php" ] && cp -a "$TMP_KEEP/config.php" "$GLPI_ROOT/inc/" 2>/dev/null || true
 rm -rf "$TMP_KEEP"
 
+# Xoá file install.php (bắt buộc sau upgrade)
+rm -f "$GLPI_ROOT/install/install.php" 2>/dev/null || true
+
 # GLPI 11.0 dùng config/config_db.php (giống 10.0.x)
-# Nếu chưa có, copy từ backup
-if [ ! -f "$GLPI_ROOT/config/config_db.php" ]; then
-    if [ -f "$BACKUP_DIR/config_db.php.bak2" ]; then
-        cp "$BACKUP_DIR/config_db.php.bak2" "$GLPI_ROOT/config/config_db.php"
-        ok "Đã khôi phục config_db.php từ backup."
-    elif [ -f "$BACKUP_DIR/config_db.php.bak" ]; then
-        cp "$BACKUP_DIR/config_db.php.bak" "$GLPI_ROOT/config/config_db.php"
-        ok "Đã khôi phục config_db.php từ backup."
-    fi
+if [ ! -f "$GLPI_ROOT/config/config_db.php" ] && [ -f "$BACKUP_DIR/config_db.php" ]; then
+    cp "$BACKUP_DIR/config_db.php" "$GLPI_ROOT/config/config_db.php"
 fi
 
-ok "Core GLPI 11.0.7 đã được cập nhật."
+ok "Core GLPI 11.0.7 đã cập nhật."
 
 # ============================================================
-# Bước 5: Fix permissions
+# Bước 5: Permissions
 # ============================================================
-echo ""
-info "Bước 5/7: Phân quyền thư mục..."
-
+echo ""; info "Bước 5/7: Phân quyền..."
 chown -R www-data:www-data "$GLPI_ROOT/"
 find "$GLPI_ROOT" -type d -exec chmod 755 {} \;
 find "$GLPI_ROOT" -type f -exec chmod 644 {} \;
-chmod -R 755 "$GLPI_ROOT/files/" 2>/dev/null || true
-chmod -R 755 "$GLPI_ROOT/config/" 2>/dev/null || true
-
-# Đảm bảo các thư mục cache/log/session có quyền ghi
+chmod -R 755 "$GLPI_ROOT/files/" "$GLPI_ROOT/config/" 2>/dev/null || true
 for dir in _cache _log _sessions _tmp _uploads _dumps _lock _graphs _plugins; do
-    target="$GLPI_ROOT/files/$dir"
-    if [ -d "$target" ]; then
-        chmod -R 755 "$target"
-        chown -R www-data:www-data "$target"
-    fi
+    [ -d "$GLPI_ROOT/files/$dir" ] && chown -R www-data:www-data "$GLPI_ROOT/files/$dir"
 done
-
-ok "Permissions đã được thiết lập."
+ok "Permissions OK."
 
 # ============================================================
-# Bước 6: Nâng cấp database schema
+# Bước 6: Nâng cấp DB
 # ============================================================
-echo ""
-info "Bước 6/7: Nâng cấp database schema GLPI 10.0 → 11.0..."
+echo ""; info "Bước 6/7: Nâng cấp database schema 10.0 → 11.0..."
 
 cd "$GLPI_ROOT"
-
 SU=""
-if [ "$(id -u)" -eq 0 ]; then
-    SU="--allow-superuser"
-fi
+[ "$(id -u)" -eq 0 ] && SU="--allow-superuser"
 
 if [ -f "bin/console" ]; then
-    # Nâng cấp database schema (GLPI 10.0 -> 11.0)
-    info "Đang nâng cấp database schema (có thể mất vài phút)..."
-    php bin/console glpi:database:update --force --no-interaction $SU 2>/dev/null
-
-    # Kiểm tra kết quả
-    DB_UPGRADE_OK=$?
-    if [ $DB_UPGRADE_OK -ne 0 ]; then
-        warn "glpi:database:update gặp lỗi. Thử phương án migration..."
-        php bin/console glpi:migration:build --force --no-interaction $SU 2>/dev/null || \
-            warn "Database upgrade có vấn đề. Chạy thủ công: php bin/console glpi:database:update --allow-superuser"
+    if [ "$BCMATH_OK" = false ]; then
+        warn "bcmath chưa khả dụng. GLPI 11.0 yêu cầu bcmath để nâng cấp DB."
+        warn "Thử chạy migration với PHP 8.3 CLI..."
+        # Thử tải bcmath extension bằng php -d extension=...
+        BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
+        if [ -n "$BCMATH_SO" ]; then
+            "$PHP_BIN" -d "extension=$BCMATH_SO" bin/console glpi:database:update --force --no-interaction $SU 2>/dev/null && {
+                ok "DB migration thành công (bcmath load bằng -d)."
+            } || {
+                err "DB migration thất bại do thiếu bcmath."
+                err "Tạm thời bỏ qua bcmath check... không thể."
+                err ""
+                err "Cách khắc phục bcmath trên Ubuntu 20.04:"
+                err "  Cách 1 (dễ): sudo apt update && sudo apt install php$(echo $PHP_MAJOR_MINOR | tr -d '.')-bcmath"
+                err "  Cách 2 (nâng cấp OS): sudo do-release-upgrade (lên 22.04)"
+                err "  Cách 3 (biên dịch): cd /tmp && phpize && wget -qO- https://php.net/get/php-8.3.0.tar.gz/from/this/mirror | tar xz && cd php-8.3.0/ext/bcmath && phpize && ./configure && make && make install"
+                exit 1
+            }
+        else
+            err "Không tìm thấy bcmath.so trên hệ thống."
+            err "Hãy cài bcmath bằng tay, sau đó chạy:"
+            err "  cd $GLPI_ROOT && php bin/console glpi:database:update --force --allow-superuser"
+            exit 1
+        fi
     else
-        ok "Database schema đã được nâng cấp."
+        info "Đang chạy DB migration (có thể mất vài phút)..."
+        "$PHP_BIN" bin/console glpi:database:update --force --no-interaction $SU 2>&1 || {
+            warn "Migration lần 1 thất bại. Thử clear cache và chạy lại..."
+            rm -rf "$GLPI_ROOT/var/cache/"* "$GLPI_ROOT/files/_cache/"* 2>/dev/null || true
+            "$PHP_BIN" bin/console glpi:database:update --force --no-interaction $SU 2>&1 || {
+                err "DB migration thất bại. Chạy thủ công:"
+                err "  cd $GLPI_ROOT && php bin/console glpi:database:update --force --allow-superuser"
+                exit 1
+            }
+        }
+        ok "Database schema đã nâng cấp."
     fi
 
     # Plugin upgrades
-    PLUGIN_LIST=$(php bin/console glpi:plugin:list $SU 2>/dev/null)
-    if echo "$PLUGIN_LIST" | grep -qi "not installed\|to update"; then
-        info "Đang nâng cấp plugins..."
-        php bin/console glpi:plugin:install --all --force $SU 2>/dev/null || true
-    fi
+    "$PHP_BIN" bin/console glpi:plugin:install --all --force $SU 2>/dev/null || true
 
-    # Clear cache (quan trọng: GLPI 11.0 dùng Symfony cache)
-    php bin/console cache:clear --no-interaction $SU 2>/dev/null || true
-    php bin/console glpi:cache:clear --no-interaction $SU 2>/dev/null || true
-    # Xóa cache thủ công để chắc chắn
+    # Clear cache
+    "$PHP_BIN" bin/console cache:clear --no-interaction $SU 2>/dev/null || true
+    "$PHP_BIN" bin/console glpi:cache:clear --no-interaction $SU 2>/dev/null || true
     rm -rf "$GLPI_ROOT/var/cache/"* "$GLPI_ROOT/files/_cache/"* 2>/dev/null || true
-
-    ok "Database schema đã được nâng cấp."
 else
-    warn "Không tìm thấy bin/console. Có thể cài đặt GLPI chưa đúng."
-    warn "Chạy thủ công: cd $GLPI_ROOT && php bin/console glpi:database:update --allow-superuser"
+    warn "Không tìm thấy bin/console."
 fi
 
 # ============================================================
-# Bước 7: Tắt maintenance & dọn dẹp
+# Bước 7: Hoàn tất
 # ============================================================
-echo ""
-info "Bước 7/7: Hoàn tất..."
+echo ""; info "Bước 7/7: Hoàn tất..."
 
-# Tắt chế độ bảo trì
-if [ -f "$MAINTENANCE_FILE" ]; then
-    rm -f "$MAINTENANCE_FILE"
-    ok "Đã tắt chế độ bảo trì."
-fi
+# Maintenance OFF
+rm -f "$MAINTENANCE_FILE" 2>/dev/null || true
+ok "Maintenance mode OFF."
 
-# Dọn dẹp file tạm
-rm -rf /opt/glpi-${GitGLPIversion}
-ok "Đã dọn dẹp file tạm."
+# Dọn dẹp
+rm -rf /opt/glpi-${GitGLPIversion} /opt/glpi
+ok "Dọn dẹp xong."
 
 # Restart services
-info "Đang restart services..."
-if systemctl is-active --quiet nginx; then
-    systemctl restart nginx || true
-fi
+for svc in nginx apache2 "php${PHP_MAJOR_MINOR}-fpm" mariadb mysql; do
+    systemctl is-active --quiet "$svc" 2>/dev/null && { systemctl restart "$svc" 2>/dev/null || true; }
+done
+ok "Services restarted."
 
-if systemctl is-active --quiet php8.3-fpm; then
-    systemctl restart php8.3-fpm || true
-fi
-
-if systemctl is-active --quiet php8.2-fpm; then
-    systemctl restart php8.2-fpm || true
-fi
-
-if systemctl is-active --quiet mariadb; then
-    systemctl restart mariadb || true
-fi
-
-ok "Services đã được restart."
-
-# ============================================================
 # Kết quả
-# ============================================================
-echo ""
-echo "=============================================="
-echo -e "${GREEN}  NÂNG CẤP GLPI HOÀN TẤT!${NC}"
-echo "=============================================="
-echo ""
-echo -e "  Phiên bản:    ${CYAN}10.0.17 → 11.0.7${NC}"
-echo -e "  Thư mục:      ${CYAN}$GLPI_ROOT${NC}"
-echo -e "  Backup:       ${CYAN}$BACKUP_DIR${NC}"
-echo ""
-echo -e "  ${YELLOW}Kiểm tra nâng cấp thành công:${NC}"
-# Trích xuất domain từ đường dẫn GLPI_ROOT để hiển thị
 GLPI_DOMAIN=$(basename "$GLPI_ROOT")
-echo -e "    https://${GLPI_DOMAIN}/  (trang web)"
-echo -e "    php bin/console glpi:database:update  (kiểm tra DB)"
 echo ""
-echo -e "  ${YELLOW}Nếu có lỗi:${NC}"
-echo -e "    1. Kiểm tra file: $GLPI_ROOT/files/_log/php-errors.log"
-echo -e "    2. Chạy thủ công: php bin/console glpi:database:update"
-echo -e "    3. Restore backup:"
-echo -e "       - DB:     gunzip -c $BACKUP_DIR/database-${dbname}.sql.gz | mysql -u$dbuser -p${dbpass} -h${dbhost} $dbname"
-echo -e "       - Files:  tar xzf $BACKUP_DIR/glpi-source.tar.gz -C /"
-echo ""
-echo -e "  ${RED}Đừng quên đổi mật khẩu mặc định!${NC}"
 echo "=============================================="
+echo -e "${GREEN}  NÂNG CẤP HOÀN TẤT! 10.0.17 → 11.0.7${NC}"
+echo "=============================================="
+echo "  Website:  https://${GLPI_DOMAIN}/"
+echo "  Thư mục:  $GLPI_ROOT"
+echo "  Backup:   $BACKUP_DIR"
+echo ""
+echo "  Kiểm tra: php bin/console glpi:system:status --allow-superuser"
+echo "  Log lỗi:  tail -100 $GLPI_ROOT/files/_log/php-errors.log"
+echo ""
+echo "  Nếu lỗi DB, chạy lại:"
+echo "    cd $GLPI_ROOT && php bin/console glpi:database:update --force --allow-superuser"
+echo "=============================================="
+
+if [ "$BCMATH_OK" = false ]; then
+    echo ""
+    echo -e "${YELLOW}⚠️  bcmath chưa khả dụng. Cần cài để GLPI hoạt động đầy đủ:${NC}"
+    echo "  sudo apt install php${PHP_MAJOR_MINOR}-bcmath"
+    echo "  sudo phpenmod bcmath"
+    echo "  sudo systemctl restart php${PHP_MAJOR_MINOR}-fpm"
+fi
 echo ""
