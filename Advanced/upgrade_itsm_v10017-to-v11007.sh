@@ -403,16 +403,61 @@ CFG_DBHOST=$(sed -n "s/.*\\\$dbhost[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" 
 CFG_DBNAME=$(sed -n "s/.*\\\$dbdefault[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
 CFG_DBPASS=$(sed -n "s/.*\\\$dbpassword[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
 info "config_db.php: user=$CFG_DBUSER host=$CFG_DBHOST db=$CFG_DBNAME"
-# Thử kết nối DB với credentials từ config_db.php
-if [ "$CFG_DBHOST" != "?" ] && [ "$CFG_DBUSER" != "?" ] && [ "$CFG_DBNAME" != "?" ]; then
-    mysql -u "$CFG_DBUSER" -p"$CFG_DBPASS" -h "$CFG_DBHOST" "$CFG_DBNAME" -e "SELECT 1" 2>/dev/null && {
-        ok "DB connection OK với credentials từ config_db.php."
-    } || {
-        warn "Không kết nối được DB với credentials từ config_db.php!"
-        warn "Thử dùng credentials bạn đã nhập ở đầu script..."
+
+# Test PHP MySQLi connection (giống cách GLPI kết nối)
+info "Test PHP mysqli connection (host=$CFG_DBHOST)..."
+cat > /tmp/test_mysqli.php << 'PHPEOF'
+<?php
+$host = $argv[1];
+$user = $argv[2];
+$pass = $argv[3];
+$db   = $argv[4];
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+try {
+    $m = new mysqli($host, $user, $pass, $db);
+    echo "OK";
+    $m->close();
+} catch (Exception $e) {
+    echo "FAIL: " . $e->getMessage();
+}
+PHPEOF
+PHP_MYSQLI_TEST=$("$PHP_BIN" /tmp/test_mysqli.php "$CFG_DBHOST" "$CFG_DBUSER" "$CFG_DBPASS" "$CFG_DBNAME" 2>&1)
+echo "PHP mysqli: $PHP_MYSQLI_TEST"
+
+if echo "$PHP_MYSQLI_TEST" | grep -q "^OK$"; then
+    ok "PHP mysqli connection OK."
+else
+    warn "PHP mysqli kết nối thất bại. Kiểm tra socket MySQL..."
+    MYSQL_SOCK=$(mysql -u "$CFG_DBUSER" -p"$CFG_DBPASS" -h "$CFG_DBHOST" -e "SHOW VARIABLES LIKE 'socket'" 2>/dev/null | grep socket | awk '{print $2}')
+    PHP_SOCK=$("$PHP_BIN" -r 'echo ini_get("mysqli.default_socket");' 2>/dev/null)
+    info "MySQL socket path: $MYSQL_SOCK"
+    info "PHP mysqli.default_socket: $PHP_SOCK"
+    
+    # Thử kết nối bằng TCP (127.0.0.1 thay vì localhost)
+    info "Thử PHP mysqli qua TCP 127.0.0.1..."
+    PHP_TCP_TEST=$("$PHP_BIN" /tmp/test_mysqli.php "127.0.0.1" "$CFG_DBUSER" "$CFG_DBPASS" "$CFG_DBNAME" 2>&1)
+    echo "PHP mysqli via TCP: $PHP_TCP_TEST"
+    
+    if echo "$PHP_TCP_TEST" | grep -q "^OK$"; then
+        warn "PHP chỉ kết nối được qua TCP, không qua socket."
+        warn "Đổi dbhost từ 'localhost' → '127.0.0.1' trong config_db.php"
+        sed -i "s/'localhost'/'127.0.0.1'/" config/config_db.php
+        CFG_DBHOST="127.0.0.1"
+        ok "Config updated: dbhost=127.0.0.1"
+    else
+        # Liệt kê MySQL sockets available
+        info "Các MySQL socket files trên hệ thống:"
+        find /var/run /var/lib/mysql -name "*.sock" 2>/dev/null || echo "(không tìm thấy)"
+        find /tmp -name "*.sock" 2>/dev/null || true
+        # Kiểm tra MySQL running
+        systemctl status mariadb 2>/dev/null | head -5 || true
+        systemctl status mysql 2>/dev/null | head -5 || true
+        
+        # Thử dùng credentials user nhập
+        warn "Thử dùng credentials bạn đã nhập..."
         mysql -u "$dbuser" -p"$dbpass" -h "$dbhost" "$dbname" -e "SELECT 1" 2>/dev/null && {
             info "Credentials bạn nhập OK. Cập nhật config_db.php..."
-            cat > "$GLPI_ROOT/config/config_db.php" << PHPEOF
+            cat > "config/config_db.php" << PHPEOF
 <?php
 class DB extends DBmysql {
    public \$dbhost = '$dbhost';
@@ -421,15 +466,19 @@ class DB extends DBmysql {
    public \$dbdefault = '$dbname';
 }
 PHPEOF
-            ok "Đã cập nhật config_db.php với credentials bạn nhập."
-            CFG_DBUSER="$dbuser"; CFG_DBHOST="$dbhost"; CFG_DBNAME="$dbname"
+            ok "Đã cập nhật config_db.php."
         } || {
-            err "Cả hai credentials đều không kết nối được DB!"
-            err "Vui lòng kiểm tra thông tin DB và chạy lại."
+            err "KHÔNG THỂ KẾT NỐI DATABASE!"
+            err "MySQL CLI OK nhưng PHP mysqli FAIL."
+            err "Socket PHP ($PHP_SOCK) != MySQL socket ($MYSQL_SOCK)"
+            err ""
+            err "Fix: ln -sf $MYSQL_SOCK $PHP_SOCK"
+            err "Hoặc sửa php.ini: mysqli.default_socket = $MYSQL_SOCK"
             exit 1
         }
-    }
+    fi
 fi
+rm -f /tmp/test_mysqli.php
 
 if [ -f "bin/console" ]; then
     if [ "$BCMATH_OK" = false ]; then
