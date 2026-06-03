@@ -80,6 +80,13 @@ if ! apt-cache policy | grep -q "ondrej/php"; then
     info "Thêm PPA ondrej/php..."
     add-apt-repository ppa:ondrej/php -y
 fi
+
+# Sửa codename trong PPA source nếu OS đã nâng cấp (VD: focal→jammy)
+UBUNTU_CODENAME=$(lsb_release -cs 2>/dev/null || echo "jammy")
+for ppa_src in /etc/apt/sources.list.d/ondrej-*.list /etc/apt/sources.list.d/ondrej-ubuntu-php-*.list; do
+    [ -f "$ppa_src" ] && sed -i "s/ focal/ ${UBUNTU_CODENAME}/g; s/ jammy/ ${UBUNTU_CODENAME}/g" "$ppa_src" 2>/dev/null || true
+done
+
 apt update -y 2>/dev/null || true
 
 # --- Nếu PHP < 8.2 hoặc không có, thử cài php8.3 NHƯNG không xoá gì cũ ---
@@ -121,7 +128,7 @@ for ini in /etc/php/${PHP_MAJOR_MINOR}/cli/php.ini /etc/php/${PHP_MAJOR_MINOR}/f
     [ -f "$ini" ] && sed -i 's/extension\s*=\s*php-ldap\.so/extension=ldap.so/g; s/extension\s*=\s*php_ldap\.so/extension=ldap.so/g' "$ini" 2>/dev/null || true
 done
 
-# --- Cài các PHP modules còn thiếu (KHÔNG xoá gì cũ) ---
+# --- Cài các PHP modules còn thiếu ---
 PHP_MODULES_REQUIRED=("bcmath" "bz2" "curl" "gd" "intl" "ldap" "mbstring" "mysqli" "xml" "zip")
 PHP_MOD_LIST=$("$PHP_BIN" -m 2>/dev/null || true)
 MISSING=()
@@ -134,7 +141,7 @@ done
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     warn "Thiếu PHP modules: ${MISSING[*]}"
-    info "Đang cài bổ sung (giữ nguyên các gói cũ)..."
+    info "Đang cài bổ sung..."
     for mod in "${MISSING[@]}"; do
         case "$mod" in
             bcmath) pkg="php${PHP_MAJOR_MINOR}-bcmath" ;;
@@ -143,49 +150,92 @@ if [ ${#MISSING[@]} -gt 0 ]; then
             gd)     pkg="php${PHP_MAJOR_MINOR}-gd" ;;
             *)      pkg="php${PHP_MAJOR_MINOR}-${mod}" ;;
         esac
-        DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" 2>&1 | tail -3 || {
-            warn "Không cài được $pkg. Thử php-${mod}..."
-            DEBIAN_FRONTEND=noninteractive apt install -y "php-${mod}" 2>&1 | tail -3 || true
+        info "Cài: $pkg"
+        DEBIAN_FRONTEND=noninteractive apt install -y "$pkg" || {
+            DEBIAN_FRONTEND=noninteractive apt install -y "php-${mod}" || true
         }
     done
-else
-    ok "Tất cả PHP modules đã sẵn sàng."
 fi
 
-# --- Kiểm tra bcmath bằng function_exists (quan trọng) ---
+# --- BẮT BUỘC: bcmath cho GLPI 11.0 ---
+# Cài đặt mạnh mẽ hơn với kiểm tra đầy đủ
+install_bcmath() {
+    local phpver="$1"
+    info "Đang cài php${phpver}-bcmath..."
+    DEBIAN_FRONTEND=noninteractive apt install -y "php${phpver}-bcmath" 2>&1
+    DEBIAN_FRONTEND=noninteractive apt install -y "php-bcmath" 2>&1 || true
+    
+    # Kích hoạt bằng mọi cách
+    phpenmod -v "$phpver" bcmath 2>/dev/null || true
+    
+    # Tạo ini thủ công nếu phpenmod không chạy
+    MODS_DIR="/etc/php/${phpver}/mods-available"
+    CLI_DIR="/etc/php/${phpver}/cli/conf.d"
+    FPM_DIR="/etc/php/${phpver}/fpm/conf.d"
+    if [ ! -f "${MODS_DIR}/bcmath.ini" ]; then
+        echo "extension=bcmath" > "${MODS_DIR}/bcmath.ini" 2>/dev/null || true
+    fi
+    mkdir -p "$CLI_DIR" "$FPM_DIR"
+    ln -sf "${MODS_DIR}/bcmath.ini" "${CLI_DIR}/20-bcmath.ini" 2>/dev/null || true
+    ln -sf "${MODS_DIR}/bcmath.ini" "${FPM_DIR}/20-bcmath.ini" 2>/dev/null || true
+    
+    # Restart FPM
+    systemctl restart "php${phpver}-fpm" 2>/dev/null || true
+    
+    # Kiểm tra
+    if "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1; then
+        ok "bcmath đã hoạt động."
+        return 0
+    fi
+    
+    # Nếu .so tồn tại nhưng chưa load
+    BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
+    if [ -n "$BCMATH_SO" ]; then
+        echo "extension=${BCMATH_SO}" > "${MODS_DIR}/bcmath.ini"
+        "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1 && {
+            ok "bcmath kích hoạt thủ công."; return 0
+        }
+    fi
+    
+    # Liệt kê trạng thái để debug
+    echo "--- Trạng thái bcmath ---"
+    dpkg -l "php*-bcmath" 2>/dev/null | grep "^ii" || echo "(chưa cài package nào)"
+    ls -la /etc/php/${phpver}/mods-available/bcmath.ini 2>/dev/null || echo "(không có bcmath.ini)"
+    ls -la /etc/php/${phpver}/cli/conf.d/*bcmath* 2>/dev/null || echo "(không có symlink cli)"
+    ls -la /etc/php/${phpver}/fpm/conf.d/*bcmath* 2>/dev/null || echo "(không có symlink fpm)"
+    find /usr/lib/php -name "bcmath.so" 2>/dev/null || echo "(không có bcmath.so)"
+    echo "---"
+    return 1
+}
+
+# Kiểm tra bcmath
 BCMATH_OK=false
 if "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1; then
     BCMATH_OK=true
     ok "bcmath hoạt động."
+else
+    install_bcmath "$PHP_MAJOR_MINOR" && BCMATH_OK=true
 fi
 
 if [ "$BCMATH_OK" = false ]; then
-    warn "bcmath chưa khả dụng. Thử tìm thủ công..."
-    BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
-    if [ -n "$BCMATH_SO" ]; then
-        MODS_DIR="/etc/php/${PHP_MAJOR_MINOR}/mods-available"
-        mkdir -p "$MODS_DIR"
-        echo "extension=$BCMATH_SO" > "$MODS_DIR/bcmath.ini"
-        ln -sf "$MODS_DIR/bcmath.ini" "/etc/php/${PHP_MAJOR_MINOR}/cli/conf.d/20-bcmath.ini" 2>/dev/null || true
-        ln -sf "$MODS_DIR/bcmath.ini" "/etc/php/${PHP_MAJOR_MINOR}/fpm/conf.d/20-bcmath.ini" 2>/dev/null || true
-        if "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1; then
-            BCMATH_OK=true; ok "bcmath đã kích hoạt thủ công từ $BCMATH_SO"
-        fi
-    fi
-fi
-
-if [ "$BCMATH_OK" = false ]; then
-    warn "bcmath vẫn chưa khả dụng. Thử tải .deb trực tiếp từ PPA..."
-    cd /tmp
-    wget -q -r -l1 --no-parent -A "php${PHP_MAJOR_MINOR}-bcmath_*_amd64.deb" "http://ppa.launchpad.net/ondrej/php/ubuntu/pool/main/p/php${PHP_MAJOR_MINOR}/" 2>/dev/null || true
-    DEB_FILE=$(find /tmp -name "php${PHP_MAJOR_MINOR}-bcmath_*_amd64.deb" 2>/dev/null | head -1)
-    if [ -n "$DEB_FILE" ]; then
-        dpkg -i "$DEB_FILE" 2>/dev/null || {
-            DEBIAN_FRONTEND=noninteractive apt install -f -y 2>/dev/null || true
-            dpkg -i "$DEB_FILE" 2>/dev/null || true
-        }
-        phpenmod -v "$PHP_MAJOR_MINOR" bcmath 2>/dev/null || true
-        "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1 && { BCMATH_OK=true; ok "bcmath cài từ .deb thành công!"; }
+    warn "bcmath CHƯA khả dụng dù đã cài. Thử khởi động lại PHP-FPM và kiểm tra lại..."
+    systemctl restart "php${PHP_MAJOR_MINOR}-fpm"
+    sleep 2
+    "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1 && BCMATH_OK=true
+    
+    if [ "$BCMATH_OK" = false ]; then
+        warn "========================================"
+        warn "bcmath vẫn chưa hoạt động sau khi cài."
+        warn "GLPI 11.0 yêu cầu bcmath."
+        warn ""
+        warn "Chạy thủ công các lệnh sau để khắc phục:"
+        warn "  sudo apt update"
+        warn "  sudo apt install php${PHP_MAJOR_MINOR}-bcmath php-bcmath"
+        warn "  sudo phpenmod bcmath"
+        warn "  sudo systemctl restart php${PHP_MAJOR_MINOR}-fpm"
+        warn "  php -m | grep bcmath"
+        warn "  php -r 'echo bcadd(1,1);'"
+        warn "========================================"
     fi
 fi
 
