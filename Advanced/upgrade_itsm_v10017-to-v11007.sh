@@ -344,8 +344,28 @@ rm -rf "$TMP_KEEP"
 rm -f "$GLPI_ROOT/install/install.php" 2>/dev/null || true
 
 # GLPI 11.0 dùng config/config_db.php (giống 10.0.x)
-if [ ! -f "$GLPI_ROOT/config/config_db.php" ] && [ -f "$BACKUP_DIR/config_db.php" ]; then
-    cp "$BACKUP_DIR/config_db.php" "$GLPI_ROOT/config/config_db.php"
+# Kiểm tra và khôi phục từ backup nếu cần
+if [ ! -f "$GLPI_ROOT/config/config_db.php" ]; then
+    if [ -f "$BACKUP_DIR/config_db.php" ]; then
+        cp "$BACKUP_DIR/config_db.php" "$GLPI_ROOT/config/config_db.php"
+        info "Đã khôi phục config_db.php từ backup."
+    else
+        # Thử tìm trong TMP_KEEP backup
+        TMP_KEEP_OLD=$(ls -d /tmp/glpi-keep-* 2>/dev/null | head -1)
+        if [ -n "$TMP_KEEP_OLD" ] && [ -f "$TMP_KEEP_OLD/config/config_db.php" ]; then
+            cp "$TMP_KEEP_OLD/config/config_db.php" "$GLPI_ROOT/config/config_db.php"
+            info "Đã khôi phục config_db.php từ temp backup."
+        fi
+    fi
+fi
+
+# Luôn đảm bảo file tồn tại
+if [ -f "$GLPI_ROOT/config/config_db.php" ]; then
+    # Kiểm tra file có nội dung hợp lệ (có class DB extends)
+    if ! head -5 "$GLPI_ROOT/config/config_db.php" 2>/dev/null | grep -q "class DB"; then
+        warn "config_db.php có vẻ không hợp lệ. Thử restore từ backup..."
+        [ -f "$BACKUP_DIR/config_db.php" ] && cp "$BACKUP_DIR/config_db.php" "$GLPI_ROOT/config/config_db.php"
+    fi
 fi
 
 ok "Core GLPI 11.0.7 đã cập nhật."
@@ -371,6 +391,45 @@ echo ""; info "Bước 6/7: Nâng cấp database schema 10.0 → 11.0..."
 cd "$GLPI_ROOT"
 SU=""
 [ "$(id -u)" -eq 0 ] && SU="--allow-superuser"
+
+# Kiểm tra config_db.php trước khi migration
+if [ ! -f "config/config_db.php" ]; then
+    err "Không tìm thấy config/config_db.php!"
+    err "Khôi phục từ backup: cp $BACKUP_DIR/config_db.php $GLPI_ROOT/config/"
+    exit 1
+fi
+CFG_DBUSER=$(sed -n "s/.*\\\$dbuser[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
+CFG_DBHOST=$(sed -n "s/.*\\\$dbhost[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
+CFG_DBNAME=$(sed -n "s/.*\\\$dbdefault[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
+CFG_DBPASS=$(sed -n "s/.*\\\$dbpassword[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
+info "config_db.php: user=$CFG_DBUSER host=$CFG_DBHOST db=$CFG_DBNAME"
+# Thử kết nối DB với credentials từ config_db.php
+if [ "$CFG_DBHOST" != "?" ] && [ "$CFG_DBUSER" != "?" ] && [ "$CFG_DBNAME" != "?" ]; then
+    mysql -u "$CFG_DBUSER" -p"$CFG_DBPASS" -h "$CFG_DBHOST" "$CFG_DBNAME" -e "SELECT 1" 2>/dev/null && {
+        ok "DB connection OK với credentials từ config_db.php."
+    } || {
+        warn "Không kết nối được DB với credentials từ config_db.php!"
+        warn "Thử dùng credentials bạn đã nhập ở đầu script..."
+        mysql -u "$dbuser" -p"$dbpass" -h "$dbhost" "$dbname" -e "SELECT 1" 2>/dev/null && {
+            info "Credentials bạn nhập OK. Cập nhật config_db.php..."
+            cat > "$GLPI_ROOT/config/config_db.php" << PHPEOF
+<?php
+class DB extends DBmysql {
+   public \$dbhost = '$dbhost';
+   public \$dbuser = '$dbuser';
+   public \$dbpassword = '$dbpass';
+   public \$dbdefault = '$dbname';
+}
+PHPEOF
+            ok "Đã cập nhật config_db.php với credentials bạn nhập."
+            CFG_DBUSER="$dbuser"; CFG_DBHOST="$dbhost"; CFG_DBNAME="$dbname"
+        } || {
+            err "Cả hai credentials đều không kết nối được DB!"
+            err "Vui lòng kiểm tra thông tin DB và chạy lại."
+            exit 1
+        }
+    }
+fi
 
 if [ -f "bin/console" ]; then
     if [ "$BCMATH_OK" = false ]; then
