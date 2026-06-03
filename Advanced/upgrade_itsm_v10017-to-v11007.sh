@@ -165,17 +165,32 @@ install_bcmath() {
     DEBIAN_FRONTEND=noninteractive apt install -y "php${phpver}-bcmath" 2>&1
     DEBIAN_FRONTEND=noninteractive apt install -y "php-bcmath" 2>&1 || true
     
-    # Kích hoạt bằng mọi cách
+    # Lấy đúng thư mục extension của PHP đang dùng
+    PHP_EXT_DIR=$("$PHP_BIN" -r 'echo PHP_EXTENSION_DIR;' 2>/dev/null || echo "/usr/lib/php/20230831")
+    info "PHP extension dir: $PHP_EXT_DIR"
+    
+    # Kích hoạt bằng phpenmod
     phpenmod -v "$phpver" bcmath 2>/dev/null || true
     
-    # Tạo ini thủ công nếu phpenmod không chạy
+    # Tạo ini với đường dẫn TUYỆT ĐỐI để tránh load nhầm phiên bản
     MODS_DIR="/etc/php/${phpver}/mods-available"
     CLI_DIR="/etc/php/${phpver}/cli/conf.d"
     FPM_DIR="/etc/php/${phpver}/fpm/conf.d"
-    if [ ! -f "${MODS_DIR}/bcmath.ini" ]; then
-        echo "extension=bcmath" > "${MODS_DIR}/bcmath.ini" 2>/dev/null || true
+    BCMATH_SO="${PHP_EXT_DIR}/bcmath.so"
+    
+    mkdir -p "$MODS_DIR" "$CLI_DIR" "$FPM_DIR"
+    
+    if [ -f "$BCMATH_SO" ]; then
+        echo "extension=${BCMATH_SO}" > "${MODS_DIR}/bcmath.ini"
+        info "Ghi extension=${BCMATH_SO} vào bcmath.ini"
+    elif [ -f "/usr/lib/php/20230831/bcmath.so" ]; then
+        # Fallback hardcode cho PHP 8.3
+        echo "extension=/usr/lib/php/20230831/bcmath.so" > "${MODS_DIR}/bcmath.ini"
+        info "Ghi extension=/usr/lib/php/20230831/bcmath.so (fallback)"
+    else
+        echo "extension=bcmath" > "${MODS_DIR}/bcmath.ini"
     fi
-    mkdir -p "$CLI_DIR" "$FPM_DIR"
+    
     ln -sf "${MODS_DIR}/bcmath.ini" "${CLI_DIR}/20-bcmath.ini" 2>/dev/null || true
     ln -sf "${MODS_DIR}/bcmath.ini" "${FPM_DIR}/20-bcmath.ini" 2>/dev/null || true
     
@@ -188,22 +203,15 @@ install_bcmath() {
         return 0
     fi
     
-    # Nếu .so tồn tại nhưng chưa load
-    BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
-    if [ -n "$BCMATH_SO" ]; then
-        echo "extension=${BCMATH_SO}" > "${MODS_DIR}/bcmath.ini"
-        "$PHP_BIN" -r 'echo function_exists("bcadd") ? "1" : "0";' 2>/dev/null | grep -q 1 && {
-            ok "bcmath kích hoạt thủ công."; return 0
-        }
-    fi
-    
     # Liệt kê trạng thái để debug
     echo "--- Trạng thái bcmath ---"
     dpkg -l "php*-bcmath" 2>/dev/null | grep "^ii" || echo "(chưa cài package nào)"
     ls -la /etc/php/${phpver}/mods-available/bcmath.ini 2>/dev/null || echo "(không có bcmath.ini)"
     ls -la /etc/php/${phpver}/cli/conf.d/*bcmath* 2>/dev/null || echo "(không có symlink cli)"
-    ls -la /etc/php/${phpver}/fpm/conf.d/*bcmath* 2>/dev/null || echo "(không có symlink fpm)"
-    find /usr/lib/php -name "bcmath.so" 2>/dev/null || echo "(không có bcmath.so)"
+    echo "Content ${MODS_DIR}/bcmath.ini:"
+    cat "${MODS_DIR}/bcmath.ini" 2>/dev/null || echo "(không đọc được)"
+    echo "PHP extension_dir: $PHP_EXT_DIR"
+    ls -la "$BCMATH_SO" 2>/dev/null || echo "(không có $BCMATH_SO)"
     echo "---"
     return 1
 }
@@ -367,24 +375,20 @@ SU=""
 if [ -f "bin/console" ]; then
     if [ "$BCMATH_OK" = false ]; then
         warn "bcmath chưa khả dụng. GLPI 11.0 yêu cầu bcmath để nâng cấp DB."
-        warn "Thử chạy migration với PHP 8.3 CLI..."
-        # Thử tải bcmath extension bằng php -d extension=...
-        BCMATH_SO=$(find /usr/lib/php -name "bcmath.so" 2>/dev/null | head -1)
-        if [ -n "$BCMATH_SO" ]; then
-            "$PHP_BIN" -d "extension=$BCMATH_SO" bin/console glpi:database:update --force --no-interaction $SU 2>/dev/null && {
+        PHP_EXT_DIR=$("$PHP_BIN" -r 'echo PHP_EXTENSION_DIR;' 2>/dev/null || echo "/usr/lib/php/20230831")
+        BCMATH_SO="${PHP_EXT_DIR}/bcmath.so"
+        if [ -f "$BCMATH_SO" ]; then
+            info "Thử load bcmath trực tiếp: -d extension=${BCMATH_SO}"
+            "$PHP_BIN" -d "extension=${BCMATH_SO}" bin/console glpi:database:update --force --no-interaction $SU 2>&1 && {
                 ok "DB migration thành công (bcmath load bằng -d)."
             } || {
-                err "DB migration thất bại do thiếu bcmath."
-                err "Tạm thời bỏ qua bcmath check... không thể."
-                err ""
-                err "Cách khắc phục bcmath trên Ubuntu 20.04:"
-                err "  Cách 1 (dễ): sudo apt update && sudo apt install php$(echo $PHP_MAJOR_MINOR | tr -d '.')-bcmath"
-                err "  Cách 2 (nâng cấp OS): sudo do-release-upgrade (lên 22.04)"
-                err "  Cách 3 (biên dịch): cd /tmp && phpize && wget -qO- https://php.net/get/php-8.3.0.tar.gz/from/this/mirror | tar xz && cd php-8.3.0/ext/bcmath && phpize && ./configure && make && make install"
+                err "DB migration thất bại dù đã load bcmath."
+                err "Chạy thủ công để xem lỗi chi tiết:"
+                err "  cd $GLPI_ROOT && php -d extension=${BCMATH_SO} bin/console glpi:database:update --force --allow-superuser"
                 exit 1
             }
         else
-            err "Không tìm thấy bcmath.so trên hệ thống."
+            err "Không tìm thấy $BCMATH_SO"
             err "Hãy cài bcmath bằng tay, sau đó chạy:"
             err "  cd $GLPI_ROOT && php bin/console glpi:database:update --force --allow-superuser"
             exit 1
