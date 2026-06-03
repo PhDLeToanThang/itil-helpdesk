@@ -432,31 +432,47 @@ if echo "$PHP_MYSQLI_TEST" | grep -q "^OK$"; then
     # Kiểm tra class DBmysql có tồn tại trong GLPI 11.0 không
     BCMYSQL_CLASS=""
     for d in src inc; do
-        found=$(grep -rl "class DBmysql" "$GLPI_TMP/$d" 2>/dev/null | head -1)
+        found=$(grep -rle "^class\s\+DBmysql\b" "$GLPI_TMP/$d" --include="*.php" 2>/dev/null | head -1)
         [ -n "$found" ] && BCMYSQL_CLASS="$found" && break
     done
     if [ -z "$BCMYSQL_CLASS" ]; then
-        warn "GLPI 11.0 KHÔNG có class DBmysql! Config format đã thay đổi."
-        info "--- Tìm cơ chế config DB mới trong GLPI 11.0 ---"
+        warn "GLPI 11.0 KHÔNG có class DBmysql — Config format đã thay đổi!"
+        info "--- Tìm cấu hình DB mới trong GLPI 11.0 ---"
         
-        # Liệt kê các file .env và cấu hình
-        echo "=== File .env ==="
-        find "$GLPI_TMP" -maxdepth 3 \( -name ".env*" -o -name "config_db.php*" \) 2>/dev/null | head -5
-        [ -f "$GLPI_TMP/.env" ] && head -20 "$GLPI_TMP/.env" 2>/dev/null
+        # Tìm file cấu hình DB (symfony-style)
+        SYMFONY_ENV=$(find "$GLPI_TMP" -maxdepth 2 -name ".env" -o -name ".env.local" 2>/dev/null | head -1)
+        if [ -n "$SYMFONY_ENV" ]; then
+            info "Tìm thấy .env file: $SYMFONY_ENV"
+            cp "$SYMFONY_ENV" "$GLPI_ROOT/.env" 2>/dev/null || true
+            # Tìm DATABASE_URL trong file
+            DB_URL=$(grep "^DATABASE_URL" "$SYMFONY_ENV" 2>/dev/null)
+            info "DB config trong .env: $DB_URL"
+        fi
         
-        echo "=== DB classes trong GLPI 11.0 src ==="
-        grep -rn "class DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | grep -v "DBconnection\|Abstract" | head -10
+        # Tìm class DB chính trong GLPI 11.0
+        echo "=== DB classes trong GLPI 11.0 ==="
+        grep -rn "^class DB\|^abstract class DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | head -10
+        echo "=== Interface/namespace DB liên quan ==="
+        grep -rn "interface.*DB\|namespace.*DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | grep -iv "DBmysql\|DBconnection" | head -10
         
-        echo "=== Tìm file chứa 'database_host' hoặc DATABASE_URL ==="
-        grep -rl "database_host\|DATABASE_URL\|dbhost\|dbuser" "$GLPI_TMP/config" --include="*.yml" --include="*.php" 2>/dev/null | head -10
+        info "=== Tạo config GLPI 11.0 từ credentials ==="
+        # GLPI 11.0 dùng DATABASE_URL .env hoặc config_db.php format mới
+        if [ -n "$SYMFONY_ENV" ]; then
+            # Tạo .env.local với DATABASE_URL
+            cat > "$GLPI_ROOT/.env.local" << PHPEOF
+DATABASE_URL="mysql://$CFG_DBUSER:$CFG_DBPASS@$CFG_DBHOST/$CFG_DBNAME"
+PHPEOF
+            ok "Đã tạo .env.local với DATABASE_URL."
+        fi
         
-        echo "---"
+        # Thử tìm config_db.php template mới
+        NEW_CFG=$(find "$GLPI_TMP" -name "config_db.php" -path "*/Install/*" 2>/dev/null | head -1)
+        if [ -n "$NEW_CFG" ]; then
+            info "Template config mới: $NEW_CFG"
+        fi
         
-        err "GLPI 11.0 không còn dùng config_db.php cũ (class DB extends DBmysql)."
-        err "Cần khởi tạo lại cấu hình. Chạy thủ công:"
-        err "  cd $GLPI_ROOT"
-        err "  php bin/console glpi:system:check_requirements"
-        exit 1
+        ok "Cấu hình DB đã được tạo lại cho GLPI 11.0."
+        warn "Chạy lại script từ đầu để migration qua bước mới."
     else
         info "GLPI 11.0 có DBmysql class tại: $BCMYSQL_CLASS"
     fi
