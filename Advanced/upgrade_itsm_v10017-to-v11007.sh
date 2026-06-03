@@ -404,7 +404,7 @@ CFG_DBNAME=$(sed -n "s/.*\\\$dbdefault[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/
 CFG_DBPASS=$(sed -n "s/.*\\\$dbpassword[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" config/config_db.php 2>/dev/null || echo "?")
 info "config_db.php: user=$CFG_DBUSER host=$CFG_DBHOST db=$CFG_DBNAME"
 
-# Test PHP MySQLi connection (giống cách GLPI kết nối)
+# Test PHP MySQLi trực tiếp (giống cách GLPI kết nối)
 info "Test PHP mysqli connection (host=$CFG_DBHOST)..."
 cat > /tmp/test_mysqli.php << 'PHPEOF'
 <?php
@@ -426,6 +426,40 @@ echo "PHP mysqli: $PHP_MYSQLI_TEST"
 
 if echo "$PHP_MYSQLI_TEST" | grep -q "^OK$"; then
     ok "PHP mysqli connection OK."
+    
+    # Dù PHP mysqli OK, GLPI console vẫn fail.
+    # Nguyên nhân: GLPI 11.0 có thể đã thay đổi DB layer.
+    # Kiểm tra class DBmysql có tồn tại trong GLPI 11.0 không
+    BCMYSQL_CLASS=""
+    for d in src inc; do
+        found=$(grep -rl "class DBmysql" "$GLPI_TMP/$d" 2>/dev/null | head -1)
+        [ -n "$found" ] && BCMYSQL_CLASS="$found" && break
+    done
+    if [ -z "$BCMYSQL_CLASS" ]; then
+        warn "GLPI 11.0 KHÔNG có class DBmysql! Config format đã thay đổi."
+        info "--- Tìm cơ chế config DB mới trong GLPI 11.0 ---"
+        
+        # Liệt kê các file .env và cấu hình
+        echo "=== File .env ==="
+        find "$GLPI_TMP" -maxdepth 3 \( -name ".env*" -o -name "config_db.php*" \) 2>/dev/null | head -5
+        [ -f "$GLPI_TMP/.env" ] && head -20 "$GLPI_TMP/.env" 2>/dev/null
+        
+        echo "=== DB classes trong GLPI 11.0 src ==="
+        grep -rn "class DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | grep -v "DBconnection\|Abstract" | head -10
+        
+        echo "=== Tìm file chứa 'database_host' hoặc DATABASE_URL ==="
+        grep -rl "database_host\|DATABASE_URL\|dbhost\|dbuser" "$GLPI_TMP/config" --include="*.yml" --include="*.php" 2>/dev/null | head -10
+        
+        echo "---"
+        
+        err "GLPI 11.0 không còn dùng config_db.php cũ (class DB extends DBmysql)."
+        err "Cần khởi tạo lại cấu hình. Chạy thủ công:"
+        err "  cd $GLPI_ROOT"
+        err "  php bin/console glpi:system:check_requirements"
+        exit 1
+    else
+        info "GLPI 11.0 có DBmysql class tại: $BCMYSQL_CLASS"
+    fi
 else
     warn "PHP mysqli kết nối thất bại. Kiểm tra socket MySQL..."
     MYSQL_SOCK=$(mysql -u "$CFG_DBUSER" -p"$CFG_DBPASS" -h "$CFG_DBHOST" -e "SHOW VARIABLES LIKE 'socket'" 2>/dev/null | grep socket | awk '{print $2}')
