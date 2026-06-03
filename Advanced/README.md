@@ -100,15 +100,31 @@ Advanced/
 
 ### Yêu cầu hệ thống
 
-| Thành phần | Yêu cầu |
-|-----------|---------|
-| OS | Ubuntu 22.04 LTS hoặc 24.04 LTS |
+| Thành phần | Yêu cầu bắt buộc |
+|-----------|------------------|
+| OS | **Ubuntu 22.04 LTS** hoặc 24.04 LTS (xem ghi chú bên dưới) |
 | RAM | ≥ 4GB (khuyến nghị 8GB) |
 | Disk | ≥ 20GB (khuyến nghị SSD) |
 | CPU | ≥ 2 cores |
 | Database | MariaDB ≥ 10.6 hoặc MySQL ≥ 8.0 |
-| PHP | 8.2 — 8.3 |
+| PHP | **8.2 — 8.3** (yêu cầu ≥ 8.2) |
 | Web Server | Nginx hoặc Apache 2.4 |
+
+> **⚠️ Quan trọng — Ubuntu 20.04 LTS không được hỗ trợ:**
+> GLPI 11.0 yêu cầu PHP ≥ 8.2, nhưng Ubuntu 20.04 LTS chỉ cung cấp PHP 7.4 từ repo chính thức.
+> Dù có thể thêm PPA `ondrej/php` để cài PHP 8.3 trên 20.04, quá trình này gặp nhiều rủi ro:
+> - PPA codename (`focal`) không đồng bộ với OS release, gây lỗi `apt update`
+> - Extension bcmath load sai phiên bản (lấy từ PHP 7.4 thay vì 8.3)
+> - Tương thích thư viện hệ thống không đảm bảo
+>
+> **Khuyến nghị: Nếu đang chạy Ubuntu 20.04, hãy nâng cấp OS lên 22.04 LTS trước khi nâng cấp GLPI:**
+> ```bash
+> # Backup toàn bộ trước khi nâng cấp OS!
+> # Sau đó chạy upgrade OS
+> sudo do-release-upgrade
+> ```
+> Script `upgrade_itsm_v10017-to-v11007.sh` có hỗ trợ auto-fix PPA codename,
+> nhưng kết quả tốt nhất đạt được trên Ubuntu 22.04 LTS+.
 
 ### Cài đặt nhanh
 
@@ -308,6 +324,60 @@ chown -R www-data:www-data /var/www/html/<thumuc-glpi>/
 
 # 5. Restart services
 systemctl restart nginx php8.3-fpm mariadb
+```
+
+### Các lỗi thường gặp khi nâng cấp và cách xử lý
+
+#### 1. Extension bcmath load sai phiên bản PHP
+
+**Triệu chứng:** `php8.3 -m | grep bcmath` không thấy bcmath, dù đã `apt install php8.3-bcmath`.
+
+**Nguyên nhân:** Script cũ dùng `find /usr/lib/php -name "bcmath.so" | head -1` để tìm đường dẫn extension, nhưng trên Ubuntu 20.04/22.04 có thể tìm thấy file `.so` của PHP 7.4 (thư mục `20190902`) thay vì PHP 8.3 (`20230831`).
+
+**Fix:** Luôn dùng `PHP_EXTENSION_DIR` từ chính PHP binary:
+```bash
+PHP_EXT_DIR=$(php8.3 -r 'echo PHP_EXTENSION_DIR;')
+echo "extension=${PHP_EXT_DIR}/bcmath.so" > /etc/php/8.3/mods-available/bcmath.ini
+```
+
+#### 2. Không kết nối được database sau nâng cấp (rawurldecode bug)
+
+**Triệu chứng:** PHP `mysqli` test OK, nhưng GLPI báo `Unable to connect to database` hoặc `The connection to the SQL server could not be established`.
+
+**Nguyên nhân:** GLPI 11.0 thêm `rawurldecode($this->dbpassword)` trong `DBmysql::connect()` (`src/DBmysql.php:293`). Nếu mật khẩu MySQL chứa ký tự `%xx` (ví dụ `%40` là `@` khi URL-decode), `rawurldecode` sẽ biến đổi password thành sai.
+
+Ví dụ: Password thật `%40T.c0m%402022` → `rawurldecode` thành `@T.c0m@2022` → Access Denied.
+
+**Fix:** Script upgrade tự động patch file `src/DBmysql.php`:
+```bash
+sed -i 's/rawurldecode($this->dbpassword)/$this->dbpassword/g' /var/www/html/glpi/src/DBmysql.php
+```
+
+> **Lưu ý:** GLPI 11.0 `rawurlencode` mật khẩu khi ghi config (qua `DBConnection::createMainConfig()`), và `rawurldecode` khi đọc. Khi nâng cấp từ 10.0.x, config cũ chưa được encode, gây mismatch. Nếu dùng script upgrade tự động, vấn đề này được xử lý tự động ở Bước 4.
+
+#### 3. PPA codename không khớp sau upgrade OS
+
+**Triệu chứng:** `apt update` báo lỗi `The repository '... focal Release' does not have a Release file`.
+
+**Nguyên nhân:** Sau khi nâng cấp Ubuntu từ 20.04 (Focal) lên 22.04 (Jammy), PPA `ondrej/php` vẫn giữ codename cũ `focal`.
+
+**Fix:** Script upgrade tự động phát hiện và sửa:
+```bash
+OS_CODENAME=$(lsb_release -sc)
+sed -i "s/$OS_CODENAME/$OS_CODENAME/g" /etc/apt/sources.list.d/ondrej-*.list
+```
+
+#### 4. Không tìm thấy class DBmysql
+
+**Triệu chứng:** `Fatal error: Class "DBmysql" not found in config_db.php`.
+
+**Nguyên nhân:** Test PHP không include `vendor/autoload.php` trước khi include `config/config_db.php`. Trong GLPI thật, autoloader luôn được load trước.
+
+**Fix:** Luôn load autoloader trước config:
+```php
+require '/path/to/glpi/vendor/autoload.php';
+require '/path/to/glpi/config/config_db.php';
+$db = new DB();
 ```
 
 ### Kiểm tra sau nâng cấp

@@ -2,7 +2,8 @@
 # ============================================================
 # upgrade_itsm_v10017-to-v11007.sh
 # Nâng cấp GLPI từ 10.0.17 lên 11.0.7
-# Hỗ trợ: Ubuntu 20.04 / 22.04 / 24.04 LTS
+# Yêu cầu: Ubuntu 22.04 LTS+ | PHP ≥ 8.2 | MariaDB ≥ 10.6 / MySQL ≥ 8.0
+# Lưu ý: Nếu đang dùng Ubuntu 20.04 LTS, phải nâng cấp OS lên 22.04 LTS trước.
 # Ngày: 01/06/2026
 # ============================================================
 set -eo pipefail
@@ -25,7 +26,8 @@ fi
 cat << "EOF"
 ╔══════════════════════════════════════════════════════════╗
 ║  NÂNG CẤP GLPI 10.0.17 → 11.0.7                        ║
-║  Yêu cầu: PHP ≥ 8.2 | MariaDB ≥ 10.6 / MySQL ≥ 8.0     ║
+║  Yêu cầu: OS Ubuntu 22.04+ | PHP ≥ 8.2 | DB ≥ 10.6     ║
+║  Lưu ý: Ubuntu 20.04 phải nâng cấp OS lên 22.04 trước  ║
 ╚══════════════════════════════════════════════════════════╝
 EOF
 
@@ -368,6 +370,28 @@ if [ -f "$GLPI_ROOT/config/config_db.php" ]; then
     fi
 fi
 
+# Patch rawurldecode trong DBmysql::connect() — GLPI 11.0 dùng rawurldecode
+# nhưng password từ 10.0.x có thể chứa %xx không cần decode (VD: %40 là password thật, không phải @).
+# Nếu rawurldecode làm thay đổi password, xóa bỏ rawurldecode để giữ nguyên.
+DBMYSQL_FILE="$GLPI_ROOT/src/DBmysql.php"
+if [ -f "$DBMYSQL_FILE" ]; then
+    if grep -q "rawurldecode(\$this->dbpassword)" "$DBMYSQL_FILE"; then
+        # Kiểm tra xem password có bị ảnh hưởng bởi rawurldecode không
+        CURRENT_PASS=$(sed -n "s/.*\$dbpassword[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" "$GLPI_ROOT/config/config_db.php" 2>/dev/null || echo "")
+        DECODED_PASS=$(php8.3 -r "echo rawurldecode('$CURRENT_PASS');" 2>/dev/null || echo "$CURRENT_PASS")
+        if [ "$CURRENT_PASS" != "$DECODED_PASS" ]; then
+            warn "Password bị thay đổi bởi rawurldecode: '$CURRENT_PASS' -> '$DECODED_PASS'"
+            info "Patching DBmysql.php để bỏ rawurldecode..."
+            sed -i 's/rawurldecode(\$this->dbpassword)/$this->dbpassword/g' "$DBMYSQL_FILE"
+            ok "rawurldecode removed from connect() — giữ nguyên password gốc."
+        else
+            info "Password không chứa URL encoding, giữ nguyên rawurldecode."
+        fi
+    else
+        info "DBmysql.php đã được patch (rawurldecode không tồn tại)."
+    fi
+fi
+
 ok "Core GLPI 11.0.7 đã cập nhật."
 
 # ============================================================
@@ -455,49 +479,21 @@ if echo "$PHP_MYSQLI_TEST" | grep -q "^OK$"; then
         DB_NAMESPACE=$(grep "^namespace " "$BCMYSQL_CLASS" 2>/dev/null | head -1 | sed 's/namespace //;s/;//')
         info "Namespace DBmysql: ${DB_NAMESPACE:-global}"
         
-        # Test y hệt cách GLPI kết nối DB
-        info "Chạy test DB connection theo đúng cách GLPI 11.0..."
-        cat > /tmp/test_glpi_db.php << 'GLPITEST'
-<?php
-// Giả lập chính xác cách GLPI kết nối
-require_once '/var/www/html/itsm.atcom.vn/config/config_db.php';
-try {
-    $db = new DB();
-    if ($db->connected) {
-        echo "GLPI_DB_OK\n";
-        echo "Host: " . $db->dbhost . "\n";
-        echo "User: " . $db->dbuser . "\n";
-        echo "DB: " . $db->dbdefault . "\n";
-    } else {
-        echo "GLPI_DB_FAIL\n";
-        echo "Error: " . ($db->dbh->connect_error ?? 'unknown') . "\n";
-        echo "Errno: " . ($db->dbh->connect_errno ?? 'N/A') . "\n";
-    }
-} catch (Exception $e) {
-    echo "GLPI_DB_EXCEPTION: " . $e->getMessage() . "\n";
-    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
-}
-GLPITEST
-        GLPI_DB_TEST=$("$PHP_BIN" /tmp/test_glpi_db.php 2>&1)
-        echo "$GLPI_DB_TEST"
-        
-        if echo "$GLPI_DB_TEST" | grep -q "GLPI_DB_OK"; then
+        # Kiểm tra DB connection theo đúng cách GLPI 11.0
+        info "Kiểm tra DB connection qua GLPI autoloader..."
+        GLPI_DB_TEST=$("$PHP_BIN" -r '
+            require "'"$GLPI_ROOT"'/vendor/autoload.php";
+            require "'"$GLPI_ROOT"'/config/config_db.php";
+            $db = new DB();
+            echo "connected:" . ($db->connected ? "OK" : "FAIL");
+        ' 2>/dev/null)
+        if echo "$GLPI_DB_TEST" | grep -q "connected:OK"; then
             ok "GLPI 11.0 DB connection OK (qua DBmysql class)."
         else
-            warn "GLPI 11.0 DB connection FAILED (dù PHP mysqli test OK)."
-            # Có thể do dbhost=localhost dùng socket vs TCP
-            warn "Thử với dbhost=127.0.0.1 (TCP thay vì socket)..."
-            sed -i "s/'localhost'/'127.0.0.1'/" "$GLPI_ROOT/config/config_db.php"
-            GLPI_DB_TEST2=$("$PHP_BIN" /tmp/test_glpi_db.php 2>&1)
-            echo "$GLPI_DB_TEST2"
-            if echo "$GLPI_DB_TEST2" | grep -q "GLPI_DB_OK"; then
-                ok "DB host phải dùng 127.0.0.1 thay vì localhost. Đã sửa."
-            else
-                err "Vẫn không kết nối được! Xem chi tiết bên trên."
-                exit 1
-            fi
+            err "GLPI 11.0 DB connection FAILED despite PHP mysqli test OK."
+            err "Kiểm tra config_db.php hoặc chạy debug thủ công."
+            exit 1
         fi
-        rm -f /tmp/test_glpi_db.php
     fi
 else
     warn "PHP mysqli kết nối thất bại. Kiểm tra socket MySQL..."
