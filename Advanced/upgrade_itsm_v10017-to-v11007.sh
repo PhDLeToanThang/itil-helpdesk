@@ -444,37 +444,60 @@ if echo "$PHP_MYSQLI_TEST" | grep -q "^OK$"; then
         if [ -n "$SYMFONY_ENV" ]; then
             info "Tìm thấy .env file: $SYMFONY_ENV"
             cp "$SYMFONY_ENV" "$GLPI_ROOT/.env" 2>/dev/null || true
-            # Tìm DATABASE_URL trong file
             DB_URL=$(grep "^DATABASE_URL" "$SYMFONY_ENV" 2>/dev/null)
             info "DB config trong .env: $DB_URL"
         fi
         
-        # Tìm class DB chính trong GLPI 11.0
-        echo "=== DB classes trong GLPI 11.0 ==="
-        grep -rn "^class DB\|^abstract class DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | head -10
-        echo "=== Interface/namespace DB liên quan ==="
-        grep -rn "interface.*DB\|namespace.*DB" "$GLPI_TMP/src" --include="*.php" 2>/dev/null | grep -iv "DBmysql\|DBconnection" | head -10
-        
-        info "=== Tạo config GLPI 11.0 từ credentials ==="
-        # GLPI 11.0 dùng DATABASE_URL .env hoặc config_db.php format mới
-        if [ -n "$SYMFONY_ENV" ]; then
-            # Tạo .env.local với DATABASE_URL
-            cat > "$GLPI_ROOT/.env.local" << PHPEOF
-DATABASE_URL="mysql://$CFG_DBUSER:$CFG_DBPASS@$CFG_DBHOST/$CFG_DBNAME"
-PHPEOF
-            ok "Đã tạo .env.local với DATABASE_URL."
-        fi
-        
-        # Thử tìm config_db.php template mới
-        NEW_CFG=$(find "$GLPI_TMP" -name "config_db.php" -path "*/Install/*" 2>/dev/null | head -1)
-        if [ -n "$NEW_CFG" ]; then
-            info "Template config mới: $NEW_CFG"
-        fi
-        
-        ok "Cấu hình DB đã được tạo lại cho GLPI 11.0."
-        warn "Chạy lại script từ đầu để migration qua bước mới."
+        ok "GLPI 11.0 dùng cơ chế config DB mới."
+        warn "Chạy lại script để migration qua bước mới."
     else
         info "GLPI 11.0 có DBmysql class tại: $BCMYSQL_CLASS"
+        DB_NAMESPACE=$(grep "^namespace " "$BCMYSQL_CLASS" 2>/dev/null | head -1 | sed 's/namespace //;s/;//')
+        info "Namespace DBmysql: ${DB_NAMESPACE:-global}"
+        
+        # Test y hệt cách GLPI kết nối DB
+        info "Chạy test DB connection theo đúng cách GLPI 11.0..."
+        cat > /tmp/test_glpi_db.php << 'GLPITEST'
+<?php
+// Giả lập chính xác cách GLPI kết nối
+require_once '/var/www/html/itsm.atcom.vn/config/config_db.php';
+try {
+    $db = new DB();
+    if ($db->connected) {
+        echo "GLPI_DB_OK\n";
+        echo "Host: " . $db->dbhost . "\n";
+        echo "User: " . $db->dbuser . "\n";
+        echo "DB: " . $db->dbdefault . "\n";
+    } else {
+        echo "GLPI_DB_FAIL\n";
+        echo "Error: " . ($db->dbh->connect_error ?? 'unknown') . "\n";
+        echo "Errno: " . ($db->dbh->connect_errno ?? 'N/A') . "\n";
+    }
+} catch (Exception $e) {
+    echo "GLPI_DB_EXCEPTION: " . $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+}
+GLPITEST
+        GLPI_DB_TEST=$("$PHP_BIN" /tmp/test_glpi_db.php 2>&1)
+        echo "$GLPI_DB_TEST"
+        
+        if echo "$GLPI_DB_TEST" | grep -q "GLPI_DB_OK"; then
+            ok "GLPI 11.0 DB connection OK (qua DBmysql class)."
+        else
+            warn "GLPI 11.0 DB connection FAILED (dù PHP mysqli test OK)."
+            # Có thể do dbhost=localhost dùng socket vs TCP
+            warn "Thử với dbhost=127.0.0.1 (TCP thay vì socket)..."
+            sed -i "s/'localhost'/'127.0.0.1'/" "$GLPI_ROOT/config/config_db.php"
+            GLPI_DB_TEST2=$("$PHP_BIN" /tmp/test_glpi_db.php 2>&1)
+            echo "$GLPI_DB_TEST2"
+            if echo "$GLPI_DB_TEST2" | grep -q "GLPI_DB_OK"; then
+                ok "DB host phải dùng 127.0.0.1 thay vì localhost. Đã sửa."
+            else
+                err "Vẫn không kết nối được! Xem chi tiết bên trên."
+                exit 1
+            fi
+        fi
+        rm -f /tmp/test_glpi_db.php
     fi
 else
     warn "PHP mysqli kết nối thất bại. Kiểm tra socket MySQL..."
