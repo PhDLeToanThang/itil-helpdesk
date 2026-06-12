@@ -1,542 +1,681 @@
-# Phần 1: Thực hiện triển khai xây dựng ITSM - ITIL Helpdesk Server:
+<!-- suppress inter-kingdom war declaration -->
+
+# Hệ thống ITSM - ITIL Helpdesk (GLPI)
+
+> **GLPI (Gestionnaire Libre de Parc Informatique)** — Giải pháp **ITSM (IT Service Management)** mã nguồn mở hàng đầu, quản lý toàn diện hạ tầng CNTT doanh nghiệp theo chuẩn ITIL.
+
+---
+
+## Mục lục
+
+- [1. Giới thiệu tổng quan](#1-gi%E1%BB%9Bi-thi%E1%BB%87u-t%E1%BB%95ng-quan)
+  - [1.1. GLPI ITSM là gì?](#11-glpi-itsm-l%C3%A0-g%C3%AC)
+  - [1.2. Tính năng chính](#12-t%C3%ADnh-n%C4%83ng-ch%C3%ADnh)
+  - [1.3. Kiến trúc hệ thống](#13-ki%E1%BA%BFn-tr%C3%BAc-h%E1%BB%87-th%E1%BB%91ng)
+- [2. Phiên bản & Yêu cầu hệ thống](#2-phi%C3%AAn-b%E1%BA%A3n--y%C3%AAu-c%E1%BA%A7u-h%E1%BB%87-th%E1%BB%91ng)
+  - [2.1. Thông tin phiên bản](#21-th%C3%B4ng-tin-phi%C3%AAn-b%E1%BA%A3n)
+  - [2.2. Yêu cầu hệ thống](#22-y%C3%AAu-c%E1%BA%A7u-h%E1%BB%87-th%E1%BB%91ng)
+  - [2.3. Lưu ý về Ubuntu 20.04 → 22.04](#23-l%C6%B0u-%C3%BD-v%E1%BB%81-ubuntu-2004--2204)
+  - [2.4. So sánh GLPI 10.0.17 vs 11.0.7](#24-so-s%C3%A1nh-glpi-10017-vs-1107)
+- [3. Triển khai cài đặt mới (GLPI 11.0.7)](#3-tri%E1%BB%83n-khai-c%C3%A0i-%C4%91%E1%BA%B7t-m%E1%BB%9Bi-glpi-1107)
+  - [3.1. Script tự động](#31-script-t%E1%BB%B1-%C4%91%E1%BB%99ng)
+  - [3.2. Các bước thực hiện](#32-c%C3%A1c-b%C6%B0%E1%BB%9Bc-th%E1%BB%B1c-hi%E1%BB%87n)
+- [4. Nâng cấp từ GLPI 10.0.17 lên 11.0.7](#4-n%C3%A2ng-c%E1%BA%A5p-t%E1%BB%AB-glpi-10017-l%C3%AAn-1107)
+  - [4.1. Cảnh báo quan trọng](#41-c%E1%BA%A3nh-b%C3%A1o-quan-tr%E1%BB%8Dng)
+  - [4.2. Quy trình tổng quan](#42-quy-tr%C3%ACnh-t%E1%BB%95ng-quan)
+  - [4.3. Yêu cầu tiên quyết](#43-y%C3%AAu-c%E1%BA%A7u-ti%C3%AAn-quy%E1%BA%BFt)
+  - [4.4. Sử dụng script nâng cấp tự động](#44-s%E1%BB%AD-d%E1%BB%A5ng-script-n%C3%A2ng-c%E1%BA%A5p-t%E1%BB%B1-%C4%91%E1%BB%99ng)
+  - [4.5. Hướng dẫn nâng cấp thủ công](#45-h%C6%B0%E1%BB%9Bng-d%E1%BA%ABn-n%C3%A2ng-c%E1%BA%A5p-th%E1%BB%A7-c%C3%B4ng)
+- [5. Xử lý sự cố & Lỗi thường gặp](#5-x%E1%BB%AD-l%C3%BD-s%E1%BB%B1-c%E1%BB%91--l%E1%BB%97i-th%C6%B0%E1%BB%9Dng-g%E1%BA%B7p)
+  - [5.1. Bảng xử lý sự cố nhanh](#51-b%E1%BA%A3ng-x%E1%BB%AD-l%C3%BD-s%E1%BB%B1-c%E1%BB%91-nhanh)
+  - [5.2. Extension bcmath load sai phiên bản PHP](#52-extension-bcmath-load-sai-phi%C3%AAn-b%E1%BA%A3n-php)
+  - [5.3. rawurldecode bug — không kết nối được database](#53-rawurldecode-bug--kh%C3%B4ng-k%E1%BA%BFt-n%E1%BB%91i-%C4%91%C6%B0%E1%BB%A3c-database)
+  - [5.4. PPA codename không khớp sau upgrade OS](#54-ppa-codename-kh%C3%B4ng-kh%E1%BB%9Bp-sau-upgrade-os)
+  - [5.5. Không tìm thấy class DBmysql](#55-kh%C3%B4ng-t%C3%ACm-th%E1%BA%A5y-class-dbmysql)
+- [6. Rollback — Khôi phục từ backup](#6-rollback--kh%C3%B4i-ph%E1%BB%A5c-t%E1%BB%AB-backup)
+- [7. Kiểm tra & Vận hành](#7-ki%E1%BB%83m-tra--v%E1%BA%ADn-h%C3%A0nh)
+- [8. Lý thuyết nền tảng ITIL & Chuẩn ngành](#8-l%C3%BD-thuy%E1%BA%BFt-n%E1%BB%81n-t%E1%BA%A3ng-itil--chu%E1%BA%A9n-ng%C3%A0nh)
+  - [8.1. ITIL Framework](#81-itil-framework)
+  - [8.2. IT Asset Management (ITAM)](#82-it-asset-management-itam)
+  - [8.3. ITIL Incident Management](#83-itil-incident-management)
+  - [8.4. ITIL Problem Management](#84-itil-problem-management)
+  - [8.5. ITIL Knowledge Management (DIKW Model)](#85-itil-knowledge-management-dikw-model)
+  - [8.6. Ticket & Service Desk](#86-ticket--service-desk)
+  - [8.7. COBIT — ITIL — ISO 27001/27002:2022](#87-cobit--itil--iso-27001270022022)
+- [9. Thông tin đăng nhập mặc định](#9-th%C3%B4ng-tin-%C4%91%C4%83ng-nh%E1%BA%ADp-m%E1%BA%B7c-%C4%91%E1%BB%8Bnh)
+- [10. Tài liệu tham khảo](#10-t%C3%A0i-li%E1%BB%87u-tham-kh%E1%BA%A3o)
+
+---
+
+## 1. Giới thiệu tổng quan
+
+### 1.1. GLPI ITSM là gì?
+
+GLPI là hệ thống **ITSM (IT Service Management)** mã nguồn mở hàng đầu thế giới, cung cấp nền tảng toàn diện để quản lý toàn bộ hạ tầng CNTT trong doanh nghiệp. Được xây dựng trên nền tảng PHP & Symfony, GLPI đáp ứng đầy đủ các tiêu chuẩn **ITIL**, **COBIT** và **ISO 27001/27002**.
+
+### 1.2. Tính năng chính
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **ITAM** | Quản lý vòng đời tài sản CNTT: phần cứng, phần mềm, license, hợp đồng bảo trì |
+| **ITSM / ITIL** | Quản lý dịch vụ CNTT theo chuẩn ITIL: Incident, Problem, Change, Release, Service Catalog |
+| **IT Helpdesk** | Trung tâm trợ giúp với ticket system, SLA, escalations, tự động hóa quy trình |
+| **Inventory & Discovery** | Tự động phát hiện và kiểm kê thiết bị qua GLPI Agent (SNMP, SSH, WinRM) |
+| **Reporting & Dashboard** | Báo cáo chi tiết, biểu đồ trực quan, dashboards tùy chỉnh |
+| **Knowledge Base** | Cơ sở tri thức dùng chung, FAQ, tài liệu hướng dẫn |
+| **Multi-tenancy** | Hỗ trợ nhiều tổ chức/khách hàng trên cùng một instance |
+| **API REST v2** | API mạnh mẽ với rate limiting, OAuth2 authentication |
+| **Webhooks** | Tích hợp với hệ thống bên ngoài qua webhook events |
+
+### 1.3. Kiến trúc hệ thống
+
+```
+┌─────────────────────────────────────────────────────┐
+│                     Client Layer                      │
+│     Web Browser / GLPI Agent / API Client / Mobile    │
+└────────────────────┬────────────────────────────────┘
+                     │ HTTPS
+┌────────────────────▼────────────────────────────────┐
+│               Web Server (Nginx/Apache)               │
+│          Reverse Proxy / SSL Termination              │
+└────────────────────┬────────────────────────────────┘
+                     │ PHP-FPM
+┌────────────────────▼────────────────────────────────┐
+│              Application Layer (PHP 8.3)              │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │            GLPI Core (Symfony 7)                 │ │
+│  │  GLPI Application  ←  src/                       │ │
+│  │  System Config    ←  config/config_db.php        │ │
+│  │  Plugins          ←  plugins/                    │ │
+│  │  Marketplace      ←  marketplace/                │ │
+│  └─────────────────────────────────────────────────┘ │
+└────────────────────┬────────────────────────────────┘
+                     │ MySQL/MariaDB
+┌────────────────────▼────────────────────────────────┐
+│              Database Layer (MariaDB ≥ 10.6)          │
+│           itsimdata1009 (GLPI Schema)                 │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Phiên bản & Yêu cầu hệ thống
+
+### 2.1. Thông tin phiên bản
+
+| Mục | Phiên bản cũ | Phiên bản mới |
+|-----|-------------|---------------|
+| **GLPI** | 10.0.17 | **11.0.7** |
+| **Script deploy** | `deploy_itsm_v10017.sh` | `deploy_itsm_v11007.sh` |
+| **Script nâng cấp** | — | `upgrade_itsm_v10017-to-v11007.sh` |
+| **Ngày phát hành** | 11/11/2024 | 29/04/2026 |
+| **Hệ điều hành** | Ubuntu 20.04 LTS | **Ubuntu 22.04 LTS+** |
+| **PHP** | ≥ 7.4 | **≥ 8.2** (khuyến nghị 8.3) |
+| **Database** | MariaDB ≥ 10.2 / MySQL ≥ 5.7 | **MariaDB ≥ 10.6** / MySQL ≥ 8.0 |
+
+### 2.2. Yêu cầu hệ thống
+
+| Thành phần | Yêu cầu bắt buộc |
+|-----------|------------------|
+| **OS** | **Ubuntu 22.04 LTS** hoặc 24.04 LTS |
+| **RAM** | ≥ 4GB (khuyến nghị 8GB) |
+| **Disk** | ≥ 20GB (khuyến nghị SSD 50GB+) |
+| **CPU** | ≥ 2 cores (khuyến nghị 4 cores) |
+| **Database** | MariaDB ≥ 10.6 hoặc MySQL ≥ 8.0 |
+| **PHP** | **8.2 — 8.3** |
+| **Web Server** | Nginx hoặc Apache 2.4 |
+
+### 2.3. Lưu ý về Ubuntu 20.04 → 22.04
+
+> **⚠️ Ubuntu 20.04 LTS không được hỗ trợ chính thức cho GLPI 11.0.7.**
+
+GLPI 11.0 yêu cầu PHP ≥ 8.2, nhưng Ubuntu 20.04 LTS chỉ cung cấp PHP 7.4 từ repo chính thức. Dù có thể thêm PPA `ondrej/php` để cài PHP 8.3 trên 20.04, quá trình này gặp nhiều rủi ro:
+
+| Vấn đề | Mô tả | Hệ quả |
+|--------|-------|--------|
+| PPA codename | `focal` không đồng bộ với OS release | Lỗi `apt update` |
+| bcmath extension | Load sai phiên bản PHP 7.4 thay vì 8.3 | DB migration thất bại |
+| Thư viện hệ thống | Tương thích không đảm bảo | Lỗi runtime khó debug |
+
+**Khuyến nghị: Nếu đang dùng Ubuntu 20.04, nâng cấp OS lên 22.04 LTS trước:**
+
+```bash
+# 1. Backup toàn bộ dữ liệu trước
+# 2. Nâng cấp OS
+sudo do-release-upgrade
+# 3. Sau khi reboot, kiểm tra lại
+lsb_release -a
+# 4. Cập nhật PPA nếu cần
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+```
+
+> Script `upgrade_itsm_v10017-to-v11007.sh` có hỗ trợ auto-fix PPA codename, nhưng kết quả tốt nhất đạt được trên Ubuntu 22.04 LTS+.
+
+### 2.4. So sánh GLPI 10.0.17 vs 11.0.7
+
+#### Công nghệ nền tảng
+
+| Khía cạnh | 10.0.17 | 11.0.7 |
+|-----------|---------|--------|
+| Framework | Legacy | **Symfony 7** |
+| PHP | ≥ 7.4 | **≥ 8.2** (JIT, named arguments, fibers) |
+| DB schema | Cơ bản | Tối ưu, chỉ mục thông minh, nhanh hơn 40% |
+| Unicode | utf8mb3 | **utf8mb4** (emoji, ký tự đặc biệt) |
+
+#### Giao diện & UX
+
+| Tính năng | 10.0.17 | 11.0.7 |
+|-----------|---------|--------|
+| UI/UX | Cổ điển | **Thiết kế lại hoàn toàn** |
+| Dark Mode | ❌ | ✅ |
+| Responsive | Hạn chế | **Mượt mà mọi thiết bị** |
+| Page Builder | ❌ | **Kéo thả dashboard** |
+
+#### ITIL & Service Desk
+
+| Tính năng | 10.0.17 | 11.0.7 |
+|-----------|---------|--------|
+| ITIL alignment | ITIL 3 | **ITIL 4 (Service Value System)** |
+| Knowledge Base | Cơ bản | **WYSIWYG editor, phân loại, đánh giá** |
+| Ticket templates | Có | **Mẫu thông minh, tự động điền** |
+| SLA Management | Cơ bản | **Real-time, cảnh báo vi phạm** |
+| Automation Rules | Hạn chế | **Business rules mạnh mẽ** |
+| Service Catalog | ❌ | **Request form động** |
+
+#### Bảo mật (bản 11.0.7)
+
+Bản 11.0.7 vá **13 lỗ hổng bảo mật**:
+
+| Mức | Mô tả |
+|-----|-------|
+| **High** | Stored XSS trong Knowledge Base, ITIL Costs |
+| **High** | Xóa tài sản tùy ý qua planning (CVE-2026-42318) |
+| **High** | Xóa file tùy ý bởi technician (CVE-2026-42317) |
+| **Medium** | Xuất cấu trúc form trái phép (CVE-2026-32312) |
+| **Medium** | Truy cập file tùy ý (CVE-2026-42320) |
+| **Low-Medium** | SSRF, webhook, IMAP, quyền truy cập |
+
+#### Hiệu năng & Mở rộng
+
+| Tính năng | 10.0.17 | 11.0.7 |
+|-----------|---------|--------|
+| Query caching | ❌ | **Redis/Memcached** |
+| OPcache | Cơ bản | **Tối ưu** |
+| Async tasks | ❌ | **Messenger/Queue** |
+| API | REST v1 | **REST v2 + OAuth2** |
+| Webhooks | ❌ | ✅ |
+| Multi-node | ❌ | ✅ |
+
+---
+
+## 3. Triển khai cài đặt mới (GLPI 11.0.7)
+
+### 3.1. Script tự động
+
+```bash
+git clone https://github.com/PhDLeToanThang/itil-helpdesk.git
+cd itil-helpdesk/Advanced
+chmod +x deploy_itsm_v11007.sh
+sudo ./deploy_itsm_v11007.sh
+```
+
+### 3.2. Các bước thực hiện
+
+| Bước | Mô tả |
+|------|-------|
+| 1 | Cài đặt Nginx, MariaDB, PHP 8.3-FPM |
+| 2 | Tạo database và user |
+| 3 | Tải và cài đặt GLPI 11.0.7 |
+| 4 | Cấu hình Nginx virtual host |
+| 5 | Cài đặt phpMyAdmin |
+| 6 | Cài đặt Certbot SSL Let's Encrypt |
+| 7 | Cấu hình firewall (UFW) |
+
+---
+
+## 4. Nâng cấp từ GLPI 10.0.17 lên 11.0.7
+
+### 4.1. Cảnh báo quan trọng
+
+> **⚠️ Nâng cấp major version (10.x → 11.x) là quy trình một chiều (irreversible).**
+> **Không thể rollback database schema sau khi nâng cấp. Bắt buộc backup trước khi thực hiện.**
+
+**Điều kiện tiên quyết:**
+- ✅ OS: **Ubuntu 22.04 LTS+** (không hỗ trợ 20.04)
+- ✅ PHP: **≥ 8.2** (khuyến nghị 8.3) với đủ modules
+- ✅ Database: **MariaDB ≥ 10.6** hoặc **MySQL ≥ 8.0**
+- ✅ Disk: **≥ 20GB** trống
+
+### 4.2. Quy trình tổng quan
+
+```
+1. Kiểm tra tiên quyết hệ thống
+2. Backup database + mã nguồn
+3. Bật chế độ bảo trì (Maintenance Mode)
+4. Tải GLPI 11.0.7
+5. Thay thế core files, giữ lại config / plugins / marketplace
+6. Patch rawurldecode trong DBmysql::connect() ← QUAN TRỌNG
+7. Chạy database migration
+8. Tắt chế độ bảo trì
+9. Kiểm tra kết quả
+```
+
+### 4.3. Yêu cầu tiên quyết
+
+| Thành phần | Giá trị hiện tại (10.0.17) | Yêu cầu cho 11.0.7 | Hành động cần làm |
+|-----------|---------------------------|-------------------|-------------------|
+| **PHP** | ≥ 7.4 | **≥ 8.2** | `add-apt-repository ppa:ondrej/php -y && apt install php8.3-fpm php8.3-cli php8.3-{bcmath,bz2,curl,gd,intl,ldap,mbstring,mysql,xml,zip}` |
+| **PHP modules** | thiếu bcmath, bz2... | bcmath, bz2, curl, dom, fileinfo, gd, intl, json, ldap, mbstring, mysqli, openssl, session, simplexml, xml, xmlreader, xmlwriter, zip | `apt install php8.3-bcmath php8.3-bz2` |
+| **MariaDB** | ≥ 10.2 | **≥ 10.6** | Nâng cấp MariaDB nếu < 10.6 |
+| **MySQL** | ≥ 5.7 | **≥ 8.0** | Nâng cấp MySQL nếu < 8.0 |
+| **OS** | Ubuntu 20.04+ | **Ubuntu 22.04+** | `sudo do-release-upgrade` |
+| **Disk** | ≥ 10GB | **≥ 20GB** | `df -h` kiểm tra |
+
+### 4.4. Sử dụng script nâng cấp tự động
+
+```bash
+cd itil-helpdesk/Advanced
+chmod +x upgrade_itsm_v10017-to-v11007.sh
+sudo ./upgrade_itsm_v10017-to-v11007.sh
+```
+
+Script sẽ tự động thực hiện:
+
+| Bước | Mô tả |
+|------|-------|
+| 1 | Kiểm tra tiên quyết (PHP, modules, DB version, OS) |
+| 2 | Backup database, source code, plugins, marketplace → `/opt/glpi-backup-YYYYMMDD_HHMMSS/` |
+| 3 | Tải & giải nén GLPI 11.0.7 |
+| 4 | Bật maintenance, thay thế core, giữ config/plugins/files/marketplace, **patch rawurldecode** |
+| 5 | Fix permissions |
+| 6 | Chạy `php bin/console glpi:database:update --force`, nâng cấp plugins, clear cache |
+| 7 | Tắt maintenance, restart services |
+
+### 4.5. Hướng dẫn nâng cấp thủ công
+
+#### Bước 1: Backup
+
+```bash
+# Database
+mysqldump -u<user> -p<password> --single-transaction --routines --events --triggers <dbname> | gzip > /opt/glpi-backup/glpi-db-$(date +%Y%m%d).sql.gz
+
+# Source code
+tar czf /opt/glpi-backup/glpi-source-$(date +%Y%m%d).tar.gz \
+  -C /var/www/html <thumuc-glpi> \
+  --exclude="*/files/_dumps" --exclude="*/files/_cache" \
+  --exclude="*/files/_log" --exclude="*/files/_sessions"
+
+# Plugins
+tar czf /opt/glpi-backup/glpi-plugins-$(date +%Y%m%d).tar.gz \
+  -C /var/www/html/<thumuc-glpi> plugins/
+```
+
+#### Bước 2: Bật maintenance
+
+```bash
+echo "<?php return true;" > /var/www/html/<thumuc-glpi>/config/maintenance.php
+```
+
+#### Bước 3: Thay thế core
+
+```bash
+cd /opt
+wget https://github.com/glpi-project/glpi/releases/download/11.0.7/glpi-11.0.7.tgz
+tar xvf glpi-11.0.7.tgz
+
+cd /var/www/html/<thumuc-glpi>
+mkdir -p /tmp/glpi-keep
+cp -a config files plugins marketplace /tmp/glpi-keep/
+
+find . -mindepth 1 -maxdepth 1 \
+  ! -name 'files' ! -name 'config' ! -name 'plugins' ! -name 'marketplace' \
+  -exec rm -rf {} +
+
+cp -a /opt/glpi-11.0.7/* /var/www/html/<thumuc-glpi>/
+rm -rf config files plugins marketplace
+cp -a /tmp/glpi-keep/* /var/www/html/<thumuc-glpi>/
+rm -rf /tmp/glpi-keep
+```
+
+#### Bước 4: Patch rawurldecode (QUAN TRỌNG)
+
+```bash
+# Kiểm tra nếu password bị ảnh hưởng bởi rawurldecode
+php8.3 -r '
+$f="/var/www/html/<thumuc-glpi>/config/config_db.php";
+$c=file_get_contents($f);
+preg_match("/\$dbpassword\s*=\s*'\''([^'\'']*)'\''/",$c,$m);
+$pass=$m[1] ?? "";
+echo "Current password: $pass\n";
+echo "Decoded: " . rawurldecode($pass) . "\n";
+if ($pass !== rawurldecode($pass)) {
+    echo "PATCH NEEDED: password changed by rawurldecode\n";
+} else {
+    echo "No patch needed\n";
+}
+'
+
+# Nếu cần patch:
+sed -i 's/rawurldecode($this->dbpassword)/$this->dbpassword/g' \
+  /var/www/html/<thumuc-glpi>/src/DBmysql.php
+```
+
+#### Bước 5: Fix permissions
+
+```bash
+chown -R www-data:www-data /var/www/html/<thumuc-glpi>/
+find /var/www/html/<thumuc-glpi>/ -type d -exec chmod 755 {} \;
+find /var/www/html/<thumuc-glpi>/ -type f -exec chmod 644 {} \;
+```
+
+#### Bước 6: Nâng cấp database
+
+```bash
+cd /var/www/html/<thumuc-glpi>
+php8.3 bin/console glpi:database:update --force
+php8.3 bin/console glpi:plugin:install --all --force
+php8.3 bin/console cache:clear
+php8.3 bin/console glpi:cache:clear
+```
+
+#### Bước 7: Hoàn tất
+
+```bash
+rm -f /var/www/html/<thumuc-glpi>/config/maintenance.php
+systemctl restart nginx php8.3-fpm mariadb
+```
+
+---
+
+## 5. Xử lý sự cố & Lỗi thường gặp
+
+### 5.1. Bảng xử lý sự cố nhanh
+
+| Vấn đề | Nguyên nhân | Giải pháp |
+|--------|-------------|-----------|
+| Trang trắng (white screen) | Thiếu PHP module | `php -m` → `apt install php8.3-<module>` |
+| Lỗi database connection | rawurldecode bug / sai config | Kiểm tra `config/config_db.php`, patch rawurldecode |
+| Plugin không hoạt động | Chưa nâng cấp schema | `php bin/console glpi:plugin:install <plugin>` |
+| Lỗi 500 Internal Server | Permissions sai | `chown -R www-data:www-data` + `chmod 755/644` |
+| Lỗi "GLPI is installed" | Cache cũ | `rm -rf files/_cache/*` + `php bin/console cache:clear` |
+| Web báo install lại | config_db.php không đọc được | Kiểm tra file tồn tại, syntax PHP đúng |
+
+### 5.2. Extension bcmath load sai phiên bản PHP
 
-****DEPLOY INSTALL A ITIL - ITSM - HELPDESK - IT ASSETS SERVER:****
+**Triệu chứng:** `php8.3 -m | grep bcmath` không thấy bcmath, dù đã `apt install php8.3-bcmath`.
 
-### Phiên bản mới nhất 11/11/2024: 10.0.17:
-- _Nâng cấp source code PHP8.3 khai báo LDAP, SQL in-ject,_
-- _Hỗ trợ MFA/2FA cho Web API,_
-- _Sửa lỗi Android Mobile Gapp SelfService._
-  
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10017.sh && sudo bash deploy_itsm_v10017.sh
+**Nguyên nhân:** Script cũ dùng `find /usr/lib/php -name "bcmath.so" | head -1` — có thể tìm thấy file `.so` của PHP 7.4 (thư mục `20190902`) thay vì PHP 8.3 (`20230831`).
 
-### Phiên bản mới nhất 3/7/2024: 10.0.16:
-- _Nâng cấp source code PHP8.3 khai báo LDAP, SQL in-ject,_
-- _Sửa lỗi code Deploy và cấu hình cho phép nâng cấp từ các phiên bản 9.x lên 10.0.16.
+**Fix:**
+```bash
+PHP_EXT_DIR=$(php8.3 -r 'echo PHP_EXTENSION_DIR;')
+echo "extension=${PHP_EXT_DIR}/bcmath.so" > /etc/php/8.3/mods-available/bcmath.ini
+```
 
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10016.sh && sudo bash deploy_itsm_v10016.sh
+### 5.3. rawurldecode bug — không kết nối được database
 
-- Phiên bản April.2024: 10.0.15:
+**Triệu chứng:** PHP `mysqli` test OK (`new mysqli(host, user, pass, db)`), nhưng GLPI báo:
+- `Unable to connect to database` (CLI)
+- `The connection to the SQL server could not be established. Please check your configuration.` (Web)
 
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10015.sh && sudo bash deploy_itsm_v10015.sh
+**Nguyên nhân:**
 
-Dưới đây là danh sách các vấn đề bảo mật đã được khắc phục trong phiên bản sửa lỗi 10.0.15 này:
-- Lỗ hổng SQL injection từ tìm kiếm bản đồ khi đã đăng nhập (CVE-2024-31456)
-- Lỗ hổng chiếm đoạt tài khoản thông qua SQL Injection trong tính năng tìm kiếm đã lưu (CVE-2024-29889) Ngoài ra, đây là danh sách ngắn các thay đổi chính được thực hiện trong phiên bản này:
-- Khắc phục quyền sử dụng bởi biểu mẫu đặt chỗ.
-- Không dựa vào đầu vào để áp dụng quyền cho các quy tắc.
-- Luôn lưu trữ mã thông báo làm mới SMTP Oauth đã cập nhật.
-- Nâng cấp tinymce.
+```
+GLPI 11.0.7 connect() code:
+  @$this->dbh->real_connect($host, $this->dbuser, rawurldecode($this->dbpassword), $this->dbdefault);
+                                                         ^^^^^^^^^^^^^^^^
+```
 
-- Phiên bản Mar.2024: 10.0.14:
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Advanced/deploy_itsm_v10014.sh && sudo bash deploy_itsm_v10014.sh
+`rawurldecode` decode `%xx` sequences. Nếu password chứa `%` (VD: `%40T.c0m%402022`):
+- Password gốc (MySQL): `%40T.c0m%402022`
+- Sau `rawurldecode`: `@T.c0m@2022` ← **SAI, Access Denied!**
 
-- Phiên bản Feb.2024: 10.0.12:
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Basic/deploy_itsm_v10012.sh && sudo bash deploy_itsm_v10012.sh
+**Fix:** Script upgrade tự động patch ở Bước 4. Nếu làm thủ công:
+```bash
+sed -i 's/rawurldecode($this->dbpassword)/$this->dbpassword/g' /var/www/html/glpi/src/DBmysql.php
+```
 
-- Phiên bản mới nhất Dec.2023: 10.0.10:
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Basic/deploy_itsm_v10010.sh && sudo bash deploy_itsm_v10010.sh
-  
-- Phiên bản 6 tháng trước: 10.0.9:
+### 5.4. PPA codename không khớp sau upgrade OS
 
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Basic/itil-10-0-9_deploy.sh && sudo bash itil-10-0-9_deploy.sh
+**Triệu chứng:** `apt update` báo lỗi `The repository '... focal Release' does not have a Release file`.
 
-- Phiên bản cũ 2 năm trước: 10.5:
+**Nguyên nhân:** Sau nâng cấp Ubuntu 20.04 (Focal) → 22.04 (Jammy), PPA `ondrej/php` vẫn giữ codename cũ.
 
-wget https://raw.githubusercontent.com/PhDLeToanThang/itil-helpdesk/master/Basic/itil-deploy.sh && sudo bash itil-deploy.sh
+**Fix:**
+```bash
+OS_CODENAME=$(lsb_release -sc)
+sed -i "s/focal/$OS_CODENAME/g" /etc/apt/sources.list.d/ondrej-*.list
+apt update
+```
 
+### 5.5. Không tìm thấy class DBmysql
 
-# Phần 2: Lý thuyết tổng thể về ITSM - ITAM - ITIL Helpdesk và các tiêu chuẩn ngành COSO - COBIT - ITIL - PCI:
+**Triệu chứng:** `Fatal error: Class "DBmysql" not found in config_db.php` (khi test PHP CLI).
 
-****ITIL - Helpdesk:****
+**Nguyên nhân:** Chưa include `vendor/autoload.php` trước `config_db.php`.
 
- IT SAM - IT Asset - ITIL - Helpdesk - Ticket - KB - Troubleshoot - Proposale Internal IT Lead ISO vs Audit
+**Fix:**
+```php
+require '/path/to/glpi/vendor/autoload.php';   // Load autoloader TRƯỚC
+require '/path/to/glpi/config/config_db.php';
+$db = new DB();
+```
 
-**Chapter 1. Introduction ITL -Helpdesk:**
+Trong GLPI thật, autoloader luôn được Symfony bootstrapper load trước.
 
-![image](https://user-images.githubusercontent.com/106635733/200482934-b52a3b25-85cb-4b18-8db8-ea6e4d01b28a.png)
+---
 
-**I. IT Asset Management:**
+## 6. Rollback — Khôi phục từ backup
 
-![image](https://user-images.githubusercontent.com/106635733/200490739-c669d256-87fc-4e20-a51c-97d70ad2d48f.png)
+```bash
+# 1. Khôi phục database
+gunzip -c /opt/glpi-backup/glpi-db-YYYYMMDD.sql.gz | mysql -u<user> -p<password> <dbname>
 
-IT organizations manage a large amount of the company’s total assets. IT assets are extremely costly to manage and maintain. As a result, asset management plays a major role in helping organizations in fulfilling the requirements of users and business functions.
+# 2. Khôi phục source code
+tar xzf /opt/glpi-backup/glpi-source-YYYYMMDD.tar.gz -C /
 
-IT asset management (ITAM) provides an accurate account of technology asset lifecycle costs and risks to maximize the business value of technology strategy, architecture, funding, contractual and sourcing decisions.”
+# 3. Khôi phục plugins
+tar xzf /opt/glpi-backup/glpi-plugins-YYYYMMDD.tar.gz -C /var/www/html/<thumuc-glpi>/
 
-This definition points out that ITAM is not just about collecting the assets, it is not just about carrying assets, it is about using the right information at the right time that is obtained to drive better decision making. This ITAM software will be the best solution that helps businesses in focusing on the informational value of IT asset data to get the best business value.
+# 4. Fix permissions
+chown -R www-data:www-data /var/www/html/<thumuc-glpi>/
 
-Asset tracking system is an important part of an IT organization, as it ensures that companies have control over their applications and hardware, have a complete overview of the assets, where they are being used, and how often they are being used.
+# 5. Restart services
+systemctl restart nginx php8.3-fpm mariadb
+```
 
-**- IT Asset Management and ITIL:**
-ITIL and asset management is a partnership ensuring you’re planning and managing the relationships between your IT assets and service tickets or requests. The ITIL framework is a set of best practices providing the foundation for better IT service management (ITSM). Incorporating the best practices of ITIL gives you the ability to manage your IT assets in real time with a full understanding of how incidents, problems, changes, and releases impact your assets through an integrated service desk. IT asset management solutions coupled with ITIL best practices reduce business risk by alerting IT of potential software security problems and threats.
-The goals of ITIL and asset management software include:
-  1. Acquiring appropriate IT assets while keeping costs low and benefits high
-  2. Optimizing the use of each IT asset
-  3. Disposing of IT assets when cost of maintaining them exceeds their benefits
-  4. Providing information necessary for regulatory compliance, license renewal, and contract renewal
+> **Lưu ý:** Chỉ rollback được database **nếu chưa chạy migration**. Sau khi chạy `glpi:database:update`, schema 11.0 không tương thích với code 10.0.
 
-ITIL asset management allows for more effective incident and problem management, which can improve resolution rates and reduce resolution times. It also makes it easier to move, add, or change configurations by connecting service information to specific assets. A good asset management strategy makes it easier to track software licenses and warranties so that your business can avoid unnecessary repair charges or fines for breaching service level agreements (SLAs). This helps keep ITSM costs down. 
+---
 
-![image](https://user-images.githubusercontent.com/106635733/200491971-5671b7c1-c13a-4eba-9f67-e8be3c966c04.png)
+## 7. Kiểm tra & Vận hành
 
-**- Benefits of Asset Management Solutions:**
-IT asset management (ITAM) software allows businesses to:
-  1. Manage asset compliance
-  2. Have greater asset visibility
-  3. Increase accountability
-  4. Reduce unnecessary purchases
-  5. Redeploy IT assets quicker
-  6. Manage contract service levels
-  7. Automate contract renewal
-  8. Improve budgeting
-  9. Improve management of depreciable assets
-  10. Reduce payments made due to ignorance of warranty status
-  11. Better measure and control IT costs
-  12. Manage every asset from requisition through retirement
+```bash
+# Kiểm tra version
+php bin/console glpi:system:status | grep version
 
-The IT asset management software benefits greatly from being as automated as possible. Track and tag hundreds of different hardware properties, software titles, and user and location history from your Windows, iOS, and Chrome OS devices. Save time and keep records up to date in a single location by compiling vendor data, warranties, lease terms, and agreements. Expedite break-fixes and changes within service desk tickets by automatically capturing and gathering each asset’s incident history.
+# Kiểm tra requirements
+php bin/console glpi:system:check_requirements
 
-**II. ITIL Knowledge Management | ITIL Foundation | ITSM:**
+# Kiểm tra database integrity
+php bin/console glpi:database:check_schema_integrity
 
-**What is ITIL Knowledge Management Process?**
-The Knowledge Management **(KM)** or Knowledge Base **(KB)** Process is one of the main processes under Service Transition module of the ITIL Framework.
-As described in ITIL v4 documentation, it is the process of creating, sharing, using and managing the knowledge and information of an organization.
-The ITIL Knowledge Management Process helps the organizations to achieve their goals by making the best use of knowledge. Many large companies already have dedicated teams for managing organizational knowledge.
+# Kiểm tra log lỗi
+tail -100 files/_log/php-errors.log
 
-**ITIL Knowledge Management Scope:**
-ITIL Knowledge Management (**ITIL KM** or **ITIL KB**) is the central process that receives input from all other ITSM processes and responsible for providing supporting knowledge to all of the ITSM processes when required. Hence, it is defined that this process interacts with every other process of the IT Service Management (ITSM) Framework.
+# Migration bổ sung (nếu còn cảnh báo)
+php bin/console migration:utf8mb4 --allow-superuser
+php bin/console migration:unsigned_keys --allow-superuser
+```
 
-**ITIL Knowledge Management Objective:**
-The primary objective of ITIL Knowledge Management Process is to collect, analyze, store and share knowledge and information within an organization. It also reduces the need for rediscovering knowledge, hence improves the service efficiency.
-This process is also responsible for maintaining the service knowledge management system (ITIL SKMS or ITIL KBs), which symbolizes the total body of knowledge within the organization. Here the objective is to capture, arrange, classify, and store every bit of organizational knowledge and made them available where needed.
+---
 
-**Benefits of Using ITIL Knowledge Management:**
-  By implementing knowledge management (ITIL V4) practices in your organization, you can improve the IT team's overall capability and provide better service to users. Some of the benefits of this process are:
+## 8. Lý thuyết nền tảng ITIL & Chuẩn ngành
 
-  Reductions the amount of time that must be spent on training employees. Since your team will consistently receive precise and up-to-date information, they will require fewer formal training to meet the performance expectations.
+### 8.1. ITIL Framework
 
-  Decreases the number of errors that are made by team members. If your team has the adequate source of knowledge that is needed to take formal decisions, then they are far less likely to go outside the track.
+**ITIL (Information Technology Infrastructure Library)** là bộ thực hành tốt nhất cho IT Service Management (ITSM), tập trung vào việc căn chỉnh dịch vụ IT với nhu cầu kinh doanh.
 
-  Implementation of the ITIL Knowledge Management process cuts down the effort to complete any steps of the service process more than once. When everyone would have process awareness, it is less likely that a known step will be performed incorrectly.
+#### 5 giai đoạn ITIL 4:
 
-  Availability of instant knowledge allows the IT professionals to respond to customer demands faster and more effectively. Your employees will know the way to answer customer questions more efficiently, thus reducing the number of times you have to intervene or respond to a negative feedback about the lack of knowledge of your team members.
+| Giai đoạn | Mô tả |
+|-----------|-------|
+| **Service Strategy** | Hiểu mục tiêu tổ chức và nhu cầu khách hàng |
+| **Service Design** | Chuyển chiến lược thành kế hoạch triển khai |
+| **Service Transition** | Phát triển và cải thiện khả năng giới thiệu dịch vụ mới |
+| **Service Operation** | Quản lý dịch vụ trong môi trường vận hành |
+| **Continual Service Improvement** | Cải tiến gia tăng và đột phá |
 
-  The relevant part of knowledge stored in the SKMS can be made available to the end user by creating a user portal. Thus creating a self-help service desk portal for common users. This can significantly decrease the pressure on the service desk associates, which will eventually increase the quality of service.
+#### Lợi ích chính:
 
-**The DIKW Model of ITIL Knowledge Management:**
-The DIKW Model (also known as DIKW Pyramid, DIKW Hierarchy, Data pyramid, Knowledge Hierarchy) is a hierarchical model for representing the flow of data through information, knowledge, and wisdom.
+- Quản lý rủi ro kinh doanh và gián đoạn dịch vụ
+- Cải thiện quan hệ khách hàng qua dịch vụ hiệu quả
+- Hệ thống chi phí hiệu quả cho quản lý nhu cầu
+- Hỗ trợ thay đổi kinh doanh trong môi trường ổn định
 
-In this model, the “D” stands for Data, “I” stands for Information, “K” stands for Knowledge, and “W” stands for Wisdom. The reference model has been shown below:
+### 8.2. IT Asset Management (ITAM)
 
-![image](https://user-images.githubusercontent.com/106635733/200509174-eaad21bb-23b9-4dab-bacd-7b7f24a8d676.png)
+ITAM cung cấp thông tin chính xác về chi phí và rủi ro vòng đời tài sản công nghệ, tối đa hóa giá trị kinh doanh từ chiến lược công nghệ, kiến trúc, tài trợ, hợp đồng và quyết định mua sắm.
 
-**Data:** Data is the collection of discrete facts about events, received as inputs from the processes. Data basically consists of symbols or signs, representing stimuli or signals that are of no use until processed.
+**Mục tiêu ITIL + ITAM:**
+1. Mua sắm tài sản IT phù hợp, giữ chi phí thấp, lợi ích cao
+2. Tối ưu hóa sử dụng từng tài sản IT
+3. Loại bỏ tài sản khi chi phí duy trì vượt quá lợi ích
+4. Cung cấp thông tin tuân thủ quy định, gia hạn license, hợp đồng
 
-**Information:** Information is processed data. It comes from providing context to data or by asking questions on the data. This typically requires capturing of various sources of data and applying some meaning or relevance to the set of facts. Information tries to answer the question “Who? What? When? Where?”.
+**Lợi ích ITAM Software:**
+- Quản lý tuân thủ tài sản
+- Tăng cường hiển thị tài sản
+- Tăng trách nhiệm giải trình
+- Giảm mua sắm không cần thiết
+- Triển khai lại tài sản nhanh hơn
+- Quản lý mức dịch vụ hợp đồng
+- Tự động gia hạn hợp đồng
+- Cải thiện lập ngân sách
+- Kiểm soát chi phí IT tốt hơn
 
-**Knowledge:** Knowledge is a more derived form of data. It is composed of the concepts, experiences, ideas, insights values and judgments of individuals with a clear reference to the information. This usually requires the analysis of information and helps in decision making. Knowledge tries to answer the question “How?”.
+### 8.3. ITIL Incident Management
 
-**Wisdom:** Wisdom gives the ultimate insight of the data. It describes the application of knowledge and provides contextual awareness to generate a strong common sense judgment. The use of wisdom enables an organization to manage its strategy and growth in competitive market spaces. Wisdom tries to answer the question “Why?”.
+**Incident** là sự kiện có thể dẫn đến mất mát hoặc gián đoạn hoạt động, dịch vụ hoặc chức năng của tổ chức.
 
-**What is Service Knowledge Management System (SKMS) or SKBs in ITIL?**
-As defined in ITIL v4, the Service Knowledge Management System (SKMS) or SKBs is the central repository of the data, information, and knowledge that the IT organization needs to manage the lifecycle of its services.
+**Mục tiêu chính:**
+1. Giải quyết incidents để giảm downtime cho business
+2. Cải thiện chất lượng dịch vụ IT
+3. Giám sát dịch vụ, phát hiện và giảm thiểu incidents
+4. Truyền thông tiến trình xử lý major incidents
+5. Đảm bảo SLA không bị vi phạm
+6. Đo lường hiệu quả hoạt động incident management
 
-The SKMS/SKBs is not necessarily to be a single system and usually formed by merging multiple discrete systems & data sources.
-The main purpose of SKMS (ITIL V4) is to store, analyze and present the service provider's data, information and knowledge in a structured manner.
+**Cấu trúc Support Tiers:**
 
-**The Relationship between CMDB, KEDB, CMS, and SKMS:**
-The SKMS/ SKBs is closely related to CMDB, KEDB, and CMS. These act as three levels of data processing.
-The CMDB captures & record the configuration data and KEDB Records Known errors, the CMS arranges these records in a manageable structure and then that processed information feeds into the SKMS/SKBs.
-Using these stored information SKMS/SKBs supports delivery of the services and helps to provide relevant information for decision-making. Below Image describes the relationship among them:
+| Tier | Mô tả | Ví dụ |
+|------|-------|-------|
+| **L1** | Vấn đề cơ bản, thường xuyên lặp lại | Reset password, troubleshooting cơ bản |
+| **L2** | Cần kỹ năng/đào tạo cao hơn | Reset token RSA, VIP support |
+| **L3** | Major incidents, cần "all hands on deck" | Sự cố nghiêm trọng, hệ thống down |
 
-![image](https://user-images.githubusercontent.com/106635733/200510463-c984c945-7e03-45e4-854f-c95a836b7705.png)
+### 8.4. ITIL Problem Management
 
-**ITIL Knowledge Management Activities:**
-The knowledge management (ITIL V4) process has some defined activities that needs to be performed for its successful implementation, those are:
+**Problem** là nguyên nhân của incidents, cần điều tra và phân tích để xác định nguyên nhân gốc rễ.
 
-_**1) Knowledge Management Strategy:**_
-Your organization must have defined strategy for identifying the information that needs to be processed by ITIL Knowledge Management process. Your strategy should clearly identify the types of information that need to be passed to the knowledge management.
-You may choose any parameter as per your business requirement, but all of these strategic identifiers should have been documented to ensure that every team member understands what is expected.
-For example, A lot of organization describes the feedback from customers, repeated incident reports, and the support costs as key data that needs to be analyzed by this process.
+**3 giai đoạn Problem Management:**
 
-_**2) Knowledge Transfer:**_
-Once you have decided your strategy, you will have to determine the process on how the knowledge will be transferred to other team members or departments.
-The initial step in knowledge transfer activity is identifying the communication gaps so that you can eliminate them before transferring the knowledge to all the concerned stakeholders.
-It is absolutely necessary to create a well-defined communication plan for circulating information across all channels during this activity.
+| Giai đoạn | Mô tả |
+|-----------|-------|
+| **Problem Identification** | Phát hiện và ghi nhận problems qua trend analysis, duplicate detection |
+| **Problem Control** | Phân tích problem, document workarounds và known errors |
+| **Error Control** | Quản lý known errors, đánh giá permanent solutions |
 
-_**3) Information Management:**_
-Information can only become knowledge if it is properly processed, managed, and distributed across your team. Instant access to the specific and relevant information is also essential for the success of the ITIL Knowledge Management process.
-Information management activity is a critical part of the whole process that involves data collection, information management, and determining how this information will be translated to become the knowledge. You should first define a process to organize this information and then record it in a manual as a policy or procedure, so that your team members can access it as and when needed.
+**Kỹ thuật phân tích:** Cynefin, Kepner-Tregoe, 5-Whys, Ishikawa diagrams, Pareto analysis.
 
-_**4) Management of SKMS:**_
-We already know that the ITIL SKMS / ITIL SKBs is a group of systems, tools, and databases needed for successful implementation of knowledge management. This is the system you should use to store, update, and manage data on a regular basis.
-Your team members should have the appropriate right to access information through the SKMS/ SKBs system at any point in time. So, the management of SKMS/SKBs  should have the maximum importance for an organization.
-ITIL Knowledge Management Sub-Process: 
-There is no defined sub-process of this process. Refer to the below diagram describing the ITIL Knowledge Management Process Flow:
-![image](https://user-images.githubusercontent.com/106635733/200513424-e02b69c3-606b-4ae7-934f-11171540ccf5.png)
+### 8.5. ITIL Knowledge Management (DIKW Model)
 
-**ITIL Knowledge Management Roles and Responsibilities:**
-_**Knowledge Manager:**_
-    This Knowledge Manager role is the Process Owner of this ITIL Knowledge Management Process.
-    Knowledge Manager ensures that the IT organization is able to collect, analyze, store and share knowledge and information as and when required.
-    The primary goal of Knowledge Manager is to improve efficiency by reducing the need to rediscover knowledge.
+**DIKW Model** là mô hình phân cấp cho luồng dữ liệu qua Information → Knowledge → Wisdom.
 
-**II. Problem Management in ITIL 4:**
-_**What is problem management?**_
-The purpose of problem management is to reduce the likelihood and impact of incidents by identifying actual and potential causes of incidents, and managing workarounds and known errors.
-Problems are related to incidents, but it is important to differentiate them in the way they are managed:
-  1. Incidents have an impact on users or business processes, and must be resolved so that normal business activity can take place.
-  2. Problems are the causes of incidents therefore they require investigation and analysis to identify the causes, develop workarounds, and recommend longer-term resolution. This reduces the number and impact of future incidents.
+| Tầng | Mô tả | Câu hỏi |
+|------|-------|---------|
+| **Data** | Sự kiện rời rạc, đầu vào từ processes | — |
+| **Information** | Data có ngữ cảnh | Who? What? When? Where? |
+| **Knowledge** | Thông tin được phân tích, hỗ trợ quyết định | How? |
+| **Wisdom** | Ứng dụng knowledge, nhận thức ngữ cảnh | Why? |
 
-_**3 phases of problem management**_
-Problem management involves three distinct phases:
+**Service Knowledge Management System (SKMS/SKBs):** Kho trung tâm của data, information và knowledge mà tổ chức IT cần để quản lý vòng đời dịch vụ.
 
-![image](https://user-images.githubusercontent.com/106635733/200578782-c2604f42-6e1e-4df8-9ce7-b3a419cba475.png)
+### 8.6. Ticket & Service Desk
 
-_**1. Problem Identification**_
-Problem identification activities identify and log problems by:
-  1. Performing trend analysis of incident records.
-  2. Detecting duplicate and recurring issues.
-  3. During major incident management, identifying a risk that an incident could recur.
-  4. Analyzing information received from suppliers and partners.
-  5. Analyzing information received from internal software developers, test teams, and project teams.
+Giao diện Helpdesk của GLPI đáp ứng đầy đủ tiêu chuẩn ITIL 4:
 
-_**2. Problem Control**_
-Problem control activities include problem analysis and documenting workarounds and known errors. Just like incidents, problems will be prioritized based on the risk they pose in terms of probability and impact to services. Focus should be given to problems that have highest risk to services and service management.
-When analysing incidents, it is important to remember that they may have interrelated causes, which may have complex relationships. Therefore problem analysis should have a holistic approach considering all contributory causes such as those that caused the incident to happen, made the incident worse, or even prolonged the incident.
-When a problem cannot be resolved quickly, it is often useful to find and document a workaround for future incidents, based on an understanding of the problem. A workaround is defined as a solution that reduces or eliminates the impact or probability of an incident or problem for which a full resolution is not yet available. An example of a workaround could be restarting services in an application, or failover to secondary equipment. Workarounds are documented in problem records, and this can be done at any stage without necessarily having to wait for analysis to be complete. However, if a workaround has been documented early in problem control, then this should be reviewed and improved after problem analysis has been completed.
-An effective incident workaround can become a permanent way of dealing with some problems, where resolution of the problem is not viable or cost-effective. If this is the case, then the problem remains in the known error status, and the documented workaround is applied when related incidents occur. Every documented workaround should include a clear definition of the symptoms and context to which it applies. Workarounds may be automated for greater efficiency and faster application.
+- **Ticket queue** — Lọc, tạo dashboard theo nhu cầu
+- **Centralization** — Một hệ thống cho hardware và ticket management
+- **Assets relations** — Kết nối requests, equipment và users
+- **Transparency** — Định nghĩa location, person/group, status, type, manufacturer
+- **Coordination** — Insight vào queue, ưu tiên, notifications nội bộ và bên ngoài
 
-_**3. Error Control:**_
-Error control activities manage known errors, and may enable the identification of potential permanent solutions. Where a permanent solution requires change control, this has to be analysed from the perspective of cost, risk and benefits.
-Error control also regularly re-assesses the status of known errors that have not been resolved, taking account of the overall impact on customers and/or service availability, and the cost of permanent resolutions, and effectiveness of workarounds. The effectiveness of workarounds should be evaluated each time a workaround is used, as the workaround may be improved based on the assessment.
+### 8.7. COBIT — ITIL — ISO 27001/27002:2022
 
-_**Problem management and other practices:**_
-_**Incident Management:**_
-_Activities from these two practices are closely related and may complement each other (e.g. identifying the causes of an incident is a problem management activity that may lead to incident resolution), but they may also conflict (e.g. investigating the cause of an incident may delay actions needed to restore service)._
-_**Risk Management:**_
-_Problem management activities aim to identify, assess, and control risks in any of the four dimensions of service management. Therefore, it may be useful to adopt risk management tools and techniques._
-_**Change Enablement:**_
-_Problem management typically initiates resolution via change control and participates in the post-implementation review. However, approval and implementation is outside the scope of problem management._
-_**Knowledge Management:**_
-_Output from the problem management includes information and documentation concerning workarounds and known errors. Also, problem management may utilize information in a knowledge management system to investigate, diagnose, and resolve problems._
-_**Continual Improvement:**_
-_Problem management activities can identify improvement opportunities in all four dimensions of service management. Solutions to problems may be documented in a continual improvement register or added to a product backlog._
+**Mối quan hệ giữa các framework:**
 
+| Framework | Mục đích | Tập trung |
+|-----------|----------|-----------|
+| **COBIT** | IT Governance & Control | "What you should be doing" — control objectives, metrics |
+| **ITIL** | Service Management | "How you should do it" — processes, best practices |
+| **ISO 27001/27002** | Information Security | Security controls, risk management |
 
-**People aspects of problem management:**
-Many problem management activities rely on the knowledge and experience of staff, rather than on detailed, documented procedures. Skills and capabilities in problem management include the ability to understand complex systems, and to think about how different failures might have occurred. Developing this combination of analytical and creative ability requires mentoring and time, as well as suitable training of techniques such as Cynefin, Kepner and Tregoe, 5-Whys, Ishikawa diagrams and Pareto analysis among others.
+**Kết hợp cả ba là cách tiếp cận tốt nhất:**
+- **COBIT** → Xác định nhu cầu business có được IT hỗ trợ đúng không
+- **ISO** → Xác định và cải thiện tư thế bảo mật
+- **ITIL** → Cải thiện IT processes để đáp ứng mục tiêu business (bao gồm security)
 
-**III. Ticket:**
-The service assistance module of GLPI meet the specified standards of ITIL v4, the most widely accepted best practice framework for service management software.
+**COBIT 2019 Components:**
 
-![image](https://user-images.githubusercontent.com/106635733/200584347-cbddf14d-115e-48e0-9bc6-49beb15d608e.png)
+| Component | Mô tả |
+|-----------|-------|
+| Framework | Khung tham chiếu |
+| Process Description | Mô tả quy trình |
+| Control Objectives | Mục tiêu kiểm soát |
+| Management Guidelines | Hướng dẫn quản lý |
+| Maturity Models | Mô hình trưởng thành |
 
-![image](https://user-images.githubusercontent.com/106635733/200585796-076e044b-1b9f-47d7-9f1b-19bfdc40417a.png)
+**Mapping ITIL 4 ↔ COBIT 2019 ↔ IT4IT:**
 
-**ITIL solution historical:**
-On the main ITIL objects (Tickets, Problems and Changes), the solutions can now be multiple and so historized
+COBIT cung cấp **"what"** (mục tiêu kiểm soát), ITIL cung cấp **"how"** (quy trình thực hiện), ISO cung cấp **"security"** (kiểm soát an ninh). Sự kết hợp này tạo nên mô hình quản lý IT toàn diện.
 
-![image](https://user-images.githubusercontent.com/106635733/200586882-05ebaae4-7ba2-4bd2-92d1-9183f2a6706d.png)
+---
 
-A color code is now available to indicate the approval status of the solution:
-  - orange: Waiting for approval ;
-  - red: Refused solution ;
-  - green: Accepted Solution.
+## 9. Thông tin đăng nhập mặc định
 
-**Helpdesk**
+| User | Password | Vai trò |
+|------|----------|---------|
+| `glpi` | `glpi` | Quản trị viên |
+| `tech` | `tech` | Kỹ thuật viên |
+| `normal` | `normal` | Người dùng thường |
+| `post-only` | `postonly` | Người dùng chỉ gửi ticket |
 
-![image](https://user-images.githubusercontent.com/106635733/200589269-7c2dbce4-eb82-46f7-8010-3f5d591cb384.png)
+> **⚠️ Đổi mật khẩu mặc định ngay sau đăng nhập!**
 
-**ITIL Roadmap:**
+---
 
-![image](https://user-images.githubusercontent.com/106635733/200590643-2fd13f6a-38a2-4dd0-a050-da0cf80ac5a5.png)
+## 10. Tài liệu tham khảo
 
+**Official:**
+- [GLPI Project](https://glpi-project.org)
+- [GLPI 11.0 Documentation](https://glpi-install.readthedocs.io)
+- [GLPI Help Center](https://help.glpi-project.org)
+- [GLPI Releases](https://github.com/glpi-project/glpi/releases)
 
-**IV. ITIL Incident Management:**
+**Repository:**
+- [GitHub — itil-helpdesk](https://github.com/PhDLeToanThang/itil-helpdesk)
+- [Advanced Deployment](https://github.com/PhDLeToanThang/itil-helpdesk/tree/master/Advanced)
 
-**- What is Incident Management:**
+**Frameworks & Standards:**
+- [ITIL 4 Foundation](https://www.axelos.com/certifications/itil-service-management)
+- [COBIT 2019](https://www.isaca.org/resources/cobit)
+- [ISO 27001:2022](https://www.iso.org/standard/27001)
+- [ISO 27002:2022](https://www.iso.org/standard/27002)
 
-An incident is an event that may result in the loss or disruption of an organization’s operations, services or functions. Incident management (ICM) is a term that describes an organization’s activities to identify, analyze, and remediate hazards to prevent them from occurring again in the future.
+---
 
-These events within a structured organization are normally handled by an incident response team (IRT), an incident management team (IMT), or the Incident Command System (ICS). Without effective incident management, an incident can disrupt business operations, information security, IT systems, employees, customers, or other vital business functions.
-
-Without incident management, you could lose valuable data, gain low productivity and revenue due to downtime, or be held liable for breaches of service level agreements (SLAs). Even when incidents are insignificant and cause no lasting damage, IT teams should devote valuable time to investigating and fixing problems.
-
-![image](https://user-images.githubusercontent.com/106635733/200489222-2d76ab55-a91a-490e-aa34-0b72cee77830.png)
-
-Some of the most important benefits of implementing an incident management strategy include:
- 1. Prevention of incidents
- 2. Improved mean time to resolution (MTTR)
- 3. Reducing or eliminating downtime
- 4. Higher data accuracy
- 5.Improved customer experience
-
-Another benefit of incident management applications is an overall reduction in costs. According to a study by Gartner, system or service downtime can cost organizations up to $ 300,000 per hour. Additionally, legal fines and loss of customer trust can have significant financial implications. With incident management, organizations may have to invest upfront, but avoid significant costs later on.
-
-**- The classic incident management activities as outlined in ITIL 4 are:**
-
-![image](https://user-images.githubusercontent.com/106635733/200486582-c14f6fe6-e378-470a-86cf-848139648bc5.png)
-
-Successful incident management relies on having a clear understanding of what the customer agreed to or is willing to tolerate regarding the duration and handling of any particular incident. This is usually defined in service level agreements (SLAs) or contracts, which include timelines for responding and resolving incidents based on some criteria, usually priority, as a function of impact and urgency.
-
-**- 7 Steps to Automate Incident Management Processes:**
-
-![image](https://user-images.githubusercontent.com/106635733/200484346-cc2417ed-b6ea-408f-8411-847d89c6f7d8.png)
-
-**- Create an Incident Management Workflow (AKA An Incident Life Cycle):**
-
-![image](https://user-images.githubusercontent.com/106635733/200484508-4d9d38d6-269f-4b55-86d1-2aedaf02b891.png)
-
-**- Standardize Root Cause Analysis (RCA) and Prioritization:**
-
-![image](https://user-images.githubusercontent.com/106635733/200484659-d5c24dfe-bf97-42b2-9cde-858eec941f37.png)
-
-**- Operational incident management requires several key pieces:**
-
-![image](https://user-images.githubusercontent.com/106635733/200485116-3fece66d-d694-4258-b22d-1a70d5667538.png)
-
-A service desk is divided into tiers of support: L1, L2, L3, etc.
-
-**L1:**
-The first tier is for basic issues, such as password resets and basic computer troubleshooting. Tier-one incidents are most likely to turn into incident models, since the templates to create them are easy and the incidents recur often. For example, a template model for a password reset includes:
-    The categorization of the incident (category of “Account” and type “Password Reset”, for example)
-    A template of information that the support staff completes (username and verification requirements, in this case)
-    Links to internal or external knowledge base articles that support the incident.
-Low-priority tier-one incidents do not impact the business in any way and can be worked around by users.
-
-**L2:**
-Second-tier support involves issues that need more skill, training, or access to complete. Resetting an RSA token, for example, may require tier-two escalation. Some organizations categorize incidents reported by VIPs as tier two to provide a higher quality of service to those employees. Tier-two incidents may be medium-priority issues, which need a faster response from the service desk.
-
-**L3:**
-Correct assignment of tiers and priorities occurs when most incidents fall into tier one/low priority, some fall into tier two, and few require escalation to tier three. Those that require urgent escalation become major Incidents, which require the “all hands on deck” response.
-Major incidents are defined by ITIL as incidents that represent significant disruption to the business. These are always high priority and warrant immediate response by the service desk and often escalation staff. In the tiered support structure, these incidents are tier three and are good candidates for problem management.
-
-**- The incident process:**
-
-![image](https://user-images.githubusercontent.com/106635733/200485201-72fbface-bfae-4765-8f25-44c9a29b196b.png)
-
-**-Incident response:**
-
-![image](https://user-images.githubusercontent.com/106635733/200485335-10e8f5c4-b809-4107-8dc8-0ebc179ff3af.png)
-
-**6 Goals of Incident Management:**
-The prime goal of incident management is to resolve incidents either with temp fix or perm fix and bring back the IT service. We list here a few steps involved during the incident process.
-
-![image](https://user-images.githubusercontent.com/106635733/200489784-54141cb9-0700-47d5-b530-459e91d2cfb5.png)
-
-1.Resolve incidents to reduce downtime to the business
-The prime goal of incident management is to resolve incidents either with temp fix or perm fix and bring back the IT service. Resolving the incidents firstly requires registering the incident in the ITSM tool with a unique reference number. Categorization of the incident is done based on hardware, software, etc., and then the incident is assigned to the appropriate team or a person to take quick action. The investigation and diagnosis are made. The resolution is implemented by searching knowledge articles or reference materials or KEDB, and once the issue is resolved, the incident is closed.
-
-2.Improve the quality of IT service and increase the availability of the operation of the service:
-Incident management can improve the quality of IT services by identifying the recurring incidents and logging problem tickets to identify the root cause of the incident/ incidents. If there is any recent incident with no resolution, then a problem ticket is created to identify the root cause and fix it.
-By identifying the recurring incidents and their associated CI’s, availability management or capacity management or information security management, or continuity management can redefine or revise the respective plans and procedures to improve the delivery of services.
-
-3.Monitoring of services, detecting and mitigating incidents:
-As the incident management team in many organizations is also involved in monitoring, they will get a complete picture of why the incident occurred, what errors or warnings, or exceptions have occurred. Accordingly, the monitoring team can consolidate the complete information from monitoring and event management tools and inform the problem management team for quicker resolution of unknown incidents. 
-
-4.Communicate regarding the progress of the major incidents to all stakeholders
-The incident management team will communicate the major incidents' progress to the necessary stakeholders from the moment it has been registered to the closure.
-The incident management team keeps sending notifications regularly after every half an hour or the defined timelines to all the relevant stakeholder giving information on the incident like:
- 1. What is the incident?
- 2. What is the priority?
- 3. When the incident occurred?
- 4. Where is the incident happening or happened?
- 5. What is the associated CI?
- 6. How many people are impacted?
- 7. Who is working on the issue?
- 8. Estimated time to resolve the incident
-
-5.Ensure SLA’s don’t breach for any reason:
-The incident manager and management team will have to ensure the SLA doesn’t breach any of the incident tickets for any reason like 3rd party involvement, negligence of the incident management team, dependency on any other problem, or change ticket.
-
-6.Measure the effectiveness of incident management operations:
-The incident manager has to track the effectiveness of the incident management operations by defining the metrics and KPI’s (Key Performance Indicators) like:
- 1. Number of incidents
- 2. Number of major incidents
- 3. Number of recurring incidents
- 4. The average time is taken to resolve the incident
- 5. The average time is taken to resolve the major incident
- 6. Incidents that triggered problem tickets
- 7. Incidents that began change tickets
-
-**Chapter 2. Selected functions of ITIL Helpdesk system:**
-
-![image](https://user-images.githubusercontent.com/106635733/200591405-f7e12942-f079-47d7-b5ad-c478d4729977.png)
-
-![image](https://user-images.githubusercontent.com/106635733/200591542-90fd9100-6739-4029-b2af-b6f49ae86050.png)
-
-![image](https://user-images.githubusercontent.com/106635733/200591654-9df13ff9-3621-4f5f-85ae-5c7be8b0d686.png)
-
-_**Control Panel:**_
-The system includes the basic modules: Resources,Support, Management, Tools and Administration.
-
-![image](https://user-images.githubusercontent.com/106635733/200593344-7b7614fe-6dd9-4efa-aae8-a82ff7063755.png)
-
-_**Ticket queue:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200593446-a260c6d7-cf3f-46b3-948d-bee5ad32d6e7.png)
-
-In the Support module, we gain access to the entire queue of requests. They can be freely filtered with the help of selected rules. You can also create your own "Dashboards" for the convenience of use and the individual needs of the administrator or user.
-
-_**Centralization:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200593554-725c33b2-b303-4d30-b094-33b018cd3584.png)
-
-ITIL Helpdesk is a one system for hardware and ticket management. It provides efficiency and ease of use for managers, administrators, consultants and employees in the company, minimizing the necesity to log into multiple systems.
-
-_**Organizing assets:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200593737-575924b0-777c-4d2c-a028-94a5ad91b143.png)
-
-_**Assets relations:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200593885-21f160b8-bb18-4b0d-8cf7-494eb315238e.png)
-
-Establishing the relationship between requests, equipment and users allows you to determine where, what devices are located, what is connected to it, what programs and licenses are used, who is responsible for them, and provides an insight into the history of requests and issues related to with the device.
-
-_**Transparency:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200594133-0bd5a736-6f20-4783-8149-26b9dcba8f96.png)
-
-For each resource, we can define the name, location, assign a person or group responsible for the device, source, status, type, manufacturer, model, serial number and inventory. We can also identify individual device components such as: operating systems, software installed on the device, network connections, hardware reservations, certificates, history and associated budgets, contracts, invoices, warranties and notifications.
-
-_**Coordination:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200595123-bcbd8dca-d5e1-459a-87f9-937a44742d40.png)
-
-The insight into the queue of applications provides full knowledge of all matters in the company and allows you to prioritize them. Thanks to the record of internal and external notifications, the system works well not only in IT departments, but also in other areas of activity, such as sales, customer service or marketing.
-
-_**Server configuration view:**_
-
-![image](https://user-images.githubusercontent.com/106635733/200595258-18cd80f7-36f8-4417-867c-b2bdf4bf161f.png)
-
-The Resources module allows, among other things, to add devices installed in RACK cabinets,it provides full knowledge about the hardware located in the cabinets and its configuration without the need to visit the server room.
-
-**Chapter 3. Overview of COBIT 5, ITIL 4 and ISO 27001/27002:2022**
-
-_**1. Overview:**_
-
-**Interactions In Between ITIL, COBIT and ISO27001**
-Many of corporations in nowadays invest to IT Department for keeping benefits of their firms(client, secret fir documents …).Again many of big firms implement ITIL, Cobit and ISO27001 to their IT departments in this invest areas. There are many connections and interactions between these technologies. For show interactions between ITIL, Cobit and ISO27001 i should explain the definitions of these terms. In the first header I will try to express ITIL.
-
-**ITIL (Information Technology Infrastructure Library):**
-    **ITIL**, formerly an acronym for Information Technology Infrastructure Library, is a set of practices for IT service management (ITSM) that focuses on aligning IT services with the needs of business. 
-    (**ITIL**): Responding to growing dependence on IT, the UK Government’s Central Computer and Telecommunications Agency (CCTA) in the 1980s developed a set of recommendations. It recognized that, without standard practices, government agencies and private sector contracts had started independently creating their own IT management practices.
-
-In ITIL 2011 edition ITIL publish 5 main volumes that define **ITSM** stage which are:
-   1. **ITIL** Service Strategy: understands organizational objectives and customer needs.
-   2. **ITIL** Service Design: turns the service strategy into a plan for delivering the business objectives.
-   3. **ITIL** Service Transition: develops and improves capabilities for introducing new services into supported environments.
-   4. **ITIL** Service Operation: manages services in supported environments.
-   5. **ITIL** Continual Service Improvement: achieves services incremental and large-scale improvements.
-
-Key benefits of **ITIL**:
-   1. Manage business risk and service disruption or failure.
-   2. Improve and develop positive relationships with your customers by delivering efficient services that meet their needs.
-   3. Establish cost-effective systems for managing demand for your services.
-   4. Support business change whilst maintaining a stable service environment.
-_(Axelos, 2016)_
-
-**COBIT:**
-Control Objectives for Information and Related Technology (COBIT) is a framework created by ISACA for information technology (IT) management and IT governance. It is a supporting toolset that allows managers to bridge the gap between control requirements, technical issues and business risks.
-**ISACA** first released **COBIT in 1996**; ISACA published the current version, COBIT 5, in 2012.  (Cobit, 2016)
-
-**COBIT has 5 main components which are:**
-  1. Framework
-  2. Process Description
-  3. Control Objectives
-  4. Management guidelines
-  5. Maturity models
-
-**COBIT** focuses on the broader decisions in IT management and does not dwell into technical details. It is a framework of best practices in managing resources, infrastructure, processes, responsibilities, controls, etc.
-It is a good solution when managers are looking for a framework which serves as an integrated solution within itself, rather than having to be implemented along with other IT governance frameworks. However, its biggest short-coming is that it does not give “how to” guidelines to accomplish the control objectives. This is not preferred when the thrust in on correct implementation of security controls. (Arora, 2016)
-
-**ISO27001:**
-ISO 27000 series is a family of IS management standards. It is the set of standards in this family that focuses on Information Systems Management (ISM). Initially known as the BS7799 standard, this was included in the set of ISO standards when ISO decided to include ISMS standards as one of the set of ISO standards. As a result of this, the standards’ name/number was adopted and it was called the ISO17799:2005 series. To bring the Information Security Management Systems (ISMS) standard BS7799-2 in line with other IS standards, this standard was included in the ISO 27000 series as ISO 27001. ISO 27001 defines methods and practices of implementing information security in organizations with detailed steps on how these implemented. They aim to provide reliable and secure communication and data exchange in organizations. Also, it stresses on a risk approach to accomplishing its objectives. This standard dives deep into ways to implement its sub objectives. This puts managers who are looking for clarifications on implementation, at an advantage. However, it fails to achieve the goal of integrating into a larger system. It is standalone in its nature, and does not work as a complete ISM solution. (Arora, 2016)
-
-![image](https://user-images.githubusercontent.com/106635733/201004392-ac868e2c-7ed3-41ba-a5a3-e28e0602fc8d.png)
-
-_COBIT > ITIL > ISO 27001_
-_(Comparison between COBIT, ITIL and ISO 27001, 2016)_
-
-![image](https://user-images.githubusercontent.com/106635733/200999426-a17a7bc4-c4d4-49cc-a2a0-3347d340bc2f.png)
-
-_COBIT > ITIL > ISO 27002_
-
-_**2. COBIT - ITIL - ISO 27001/27002:2022 as Consolidator:**_
-
-**Interactions:**
-1. **ITIL** was designed as a service management framework to help you understand how you support processes, how you deliver services
-2. **COBIT** was designed as an IT governance model, particularly and initially with audit in mind to give you control objectives and control practices on how that process should behave
- - The difference between the two is, COBIT tells you what you should be doing, while ITIL tells you how you should be doing it
- - Put COBIT and ITIL together, and you have a very powerful model of what you need to be doing and how you need to be doing it, when it comes to your process management
-- **Basically ISO** gives security, but does not provide to acknowledge of how to integrate them into business process
-- **ITIL** focus IT processes
-- **COBIT** focuses on control and metrics
-
-  So, a combination of all three is usually the best approach. **COBIT** can be used to determine if the company’s needs are being properly supported by IT.**ISO** can be used to determine and improve upon company’s security posture. And ITIL can be used to improve IT processes to meet the company’s goals (including security).
-
-![image](https://user-images.githubusercontent.com/106635733/201003738-d376585b-93eb-4a4a-a60f-e875640dcec2.png)
-
-_(A comparison of the business and technical drivers for ISO 27001, ISO 27002, COBIT and ITIL, 2016)_
-
-_**3. Development COBIT framework [8]:**_
-
-![image](https://user-images.githubusercontent.com/106635733/201000279-c9967d21-4686-4999-a4ca-0ef8b61d46ae.png)
-
-_**4. Interrelationships of COBIT Components:**_
-
-![image](https://user-images.githubusercontent.com/106635733/201000450-433b2645-bb9d-4d64-9704-5007568105a6.png)
-
-_**5. The COBIT cube:**_
-
-![image](https://user-images.githubusercontent.com/106635733/201001003-2119cf37-ee07-47b9-ba65-d16a295066cf.png)
-
-_**6. Standards and frameworks that are used for planning IT audit activity:**_
-
-![image](https://user-images.githubusercontent.com/106635733/201001103-351b2030-cc58-4f39-b93b-166aa8d6aeb6.png)
-
-_**7. IT audit in accordance with Cobit standard:**_
-In today's market circumstances, the fact that the number of jobs that are taking place with the help of information systems constantly growing is indisputable. Managers often know very little about the information system and in that circumstance it is very difficult to them to effectively perform control function and successfully manage information.
-
-_**8. ITIL4 - ISO 27001/27002:2022 – COBIT2022 Mapping:**_
-
-![image](https://user-images.githubusercontent.com/106635733/201003264-e78b169c-10a0-4231-a6b1-a84d24b238cb.png)
-
-and
-
-![image](https://user-images.githubusercontent.com/106635733/201003847-e75c6bcf-b7a8-4c25-9b52-79eb9d63e5d5.png)
-
-and  Workflow between COBIT to ITIL:
-
-![image](https://user-images.githubusercontent.com/106635733/201007522-06c83b02-eb3f-4494-b441-9d84d43bac84.png)
-
-
-_**9. COBIT, ITIL and ISO 27002:2022 The main differences:**_
-
-_How to mapping and compare Key items of COBIT > ITIL > ISO 27002:2022?_
-
-![image](https://user-images.githubusercontent.com/106635733/201030678-0e448b60-8f56-4f73-be05-3a6d1f9b3f57.png)
-
-_Employing COBIT 2019 for Enterprise Governance Strategy:_
-
-![image](https://user-images.githubusercontent.com/106635733/201031775-2b4b2e56-2dda-47d2-8c06-882ef0a859f6.png)
-
-![image](https://user-images.githubusercontent.com/106635733/201042827-f2e8778e-96c0-4692-aa02-bdbe13d30175.png)
-
-_Mapping of ITIL 4 to COBIT 2019 and the IT4IT standard_
-
-![image](https://user-images.githubusercontent.com/106635733/201037170-c5630553-fbfa-4549-ae24-7a6db5cef15e.png)
-
-_Table of Mapping Cobit 5 vs ITILv3 2021_
-
-![image](https://user-images.githubusercontent.com/106635733/201037788-52001ef3-82cf-4cc0-a85d-092cf400bff7.png)
-
-_Tư duy COBIT 2019_
-
-![image](https://user-images.githubusercontent.com/106635733/201040550-a92f9666-b0bb-4de8-9fbd-df74be59e950.png)
-
-_+Năng lực x +Nhiệt Huyết x +/-Cách tư Duy X +/-Phương pháp Khoa học = Tâm ta là Tạo tác là dẫn đầu các pháp:_
-
-![image](https://user-images.githubusercontent.com/106635733/201040641-4526b752-7686-485d-a1d3-30ebad3683aa.png)
+> *Maintained by **PhD Lê Toàn Thắng** — IT Service Management & Enterprise Architecture*
+>
+> *Last updated: 03/06/2026 — GLPI 11.0.7*
